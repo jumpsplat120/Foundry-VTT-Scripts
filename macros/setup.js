@@ -8,6 +8,7 @@ game.saved_macro = {
 	utils: {
 		isPressed: key => { return !!game.saved_macro.tracking.keys[key.toLowerCase()] },
 		simpleName: item_name => { return item_name.replaceAll(" ", "_").toLowerCase() },
+		fancyName: item_name => { return item_name.replaceAll("_", " ").toTitleCase() },
 		getItemByName: (item_name, character) => {
 			const current_char = character ? character : game.user.character;
 			const vals = [...current_char.data.items.values()]
@@ -110,8 +111,8 @@ game.saved_macro = {
 	},
 	//keys = { keyname: true }
 	//advantage = [ ["Source Name", amt, "fa-icon", function() { console.log("Do on using advantage") }] ]
-	//damage = { damage_source: {  dice: [[1, 8],[2, 6]], label: "Force Damage" } }
-	//damage sources combine if two sources are the same
+	//damage = { damage_source: [false, 1, false]; }
+	//					[critical, spell_level, versatile]
 	tracking: { arrows: 0, keys: {}, advantage: [], damage: {} }
 };
 
@@ -147,7 +148,6 @@ run.forEveryone(_ => {
 String.prototype.toTitleCase = function() {
     let upper = true;
     let str   = "";
-	console.log(this)
     for (let i = 0, l = this.length; i < l; i++) {
 		const chr = this[i];
         if (chr == " ") {
@@ -158,6 +158,5 @@ String.prototype.toTitleCase = function() {
 			upper = false;
 		}
     }
-	console.log(str)
     return str
 }

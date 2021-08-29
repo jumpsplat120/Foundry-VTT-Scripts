@@ -160,3 +160,9 @@ String.prototype.toTitleCase = function() {
     }
     return str
 }
+Object.defineProperty(Object.prototype, "length", {
+	get() { return Object.keys(this).length; },
+	set() { },
+	enumerable: false,
+	writeable: false
+});

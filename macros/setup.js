@@ -18,9 +18,13 @@ game.saved_macro = {
 				no: { icon: '<i class="fas fa-times"></i>', label: "No", callback: no }}});
 		},
 		getItemByName: (item_name, character) => {
-			const current_char = character ? character : game.user.character;
-			const vals = [...current_char.data.items.values()]
-			for (let i = 0; i < vals.length; i++) { if (game.saved_macro.utils.simpleName(vals[i].name) === game.saved_macro.utils.simpleName(item_name)) { return vals[i] } }
+			const utils = game.saved_macro.utils;
+			if (character) {
+				const vals = [...character.data.items.values()]
+				for (let i = 0; i < vals.length; i++) { if (utils.simpleName(vals[i].name) === utils.simpleName(item_name)) { return vals[i] } }
+			} else {
+				game.items.getName(utils.fancyName(item_name));
+			}
 		},
 		getPronouns: character => {
 			const gender = character.data.data.details.gender.toLowerCase();

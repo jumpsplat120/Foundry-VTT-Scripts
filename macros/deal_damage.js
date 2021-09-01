@@ -45,7 +45,8 @@ if (damages.length > 0) {
 							}
 						})
 					})
-					game.saved_macro.tracking.damage = {};
+
+					track.damage = { favored_foe: track.damage.favored_foe };
 				}
 			}
 		}

@@ -26,11 +26,14 @@ if (damages.length > 0) {
 					const checkboxes = event[0].querySelectorAll(":scope input[type='checkbox']");
 					const formula = [];
 					checkboxes.forEach(checkbox => { if (checkbox.checked) { checked_boxes[checked_boxes.length] = utils.getItemByName(checkbox.value); }});
+					const weapon_type = checked_boxes.filter(item => item.type == "weapon" && item.name != "favored_foe")[0].labels.damageTypes;
 					checked_boxes.forEach((item, index) => {
-						const data = attacks[utils.simpleName(item.name)];
+						const simple = utils.simpleName(item.name);
+						const data = attacks[simple];
+						const type = simple == "favored_foe" ? weapon_type : item.labels.damageTypes;
 						item.rollDamage({critical: data[0], spellLevel: data[1], versatile: data[2], options: { fastForward: true, chatMessage: false }}).then(roll => { 
 							roll.toMessage({}, { rollMode: "selfroll" });
-							formula[formula.length] = [roll.total, roll.options.flavor.match(/\((\w+)\)/)[1]]
+							formula[formula.length] = [roll.total, type]
 							if (formula.length == checked_boxes.length) {
 								const combined = {}
 								let formula_str = "";

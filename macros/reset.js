@@ -8,7 +8,7 @@ Dialog.confirm({
         <li><b>${track.damage.length}</b> unused sources of damage</li>
         <li>${track.lucky ? "A" : "No"} use of the lucky feat</li>
     </ul>`,
-    yes: _ => { game.saved_macro.tracking: { arrows: 0, keys: {}, advantage: [], damage: {} } },
+    yes: _ => { game.saved_macro.tracking = { arrows: 0, keys: {}, advantage: [], damage: {} } },
     no: _ => {},
     defaultYes: false
 });

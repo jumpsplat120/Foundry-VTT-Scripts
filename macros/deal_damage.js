@@ -1,9 +1,12 @@
-const utils = game.saved_macro.utils;
+const saved   = game.saved_macro;
+const utils   = saved.utils;
+const track   = saved.tracking;
+const damages = track.damage;
 
-const checkbox = (value, display) => { return `<input type="checkbox" value="${value}" style="vertical-align: sub;"><div style="display: inline-block;">${display}</div><br>` }
-const attacks = {};
-const damages = game.saved_macro.tracking.damage;
 let content = "";
+
+const checkbox = (value, display) => { return `<input type="checkbox" name="damages" value="${value}" style="vertical-align: sub;"><div style="display: inline-block;">${display}</div><br>` }
+const attacks = {};
 
 if (damages.length > 0) {
 	Object.entries(damages).forEach(item => { 
@@ -11,7 +14,7 @@ if (damages.length > 0) {
 		attacks[item[0]] = item[1];
 	})
 	
-	let d = new Dialog({
+	new Dialog({
 		title: "Deal Damage",
 		content: content,
 		buttons: {

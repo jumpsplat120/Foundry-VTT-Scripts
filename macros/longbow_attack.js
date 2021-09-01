@@ -22,34 +22,57 @@ const advantage_dialog = new Dialog({
 							label: advantage[0],
 							callback: _ => {
 								advantage[3]();
-									bow.rollAttack({fastForward: true, advantage: true, flavor: `Longbow w/ ${advantage[0]} - Attack Roll`}).then(roll => { t.damage.longbow = [roll.result.split(" ")[0] == 20, null, false] });
-									u.updateItemQuantity("arrows", 1, "-");
-									t.arrows++;
-									advantage[1]--;
-									if (advantage[1] == 0) { t.advantage.splice(i, 1); }
-									AudioHelper.play({src: audio_src, volume: 0.8, autoplay: true, loop: false}, true);
-								}
+								bow.rollAttack({fastForward: true, advantage: true, flavor: `Longbow w/ ${advantage[0]} - Attack Roll`}).then(roll => {t.damage.longbow = [roll.result.split(" ")[0] == 20, null, false] });
+								u.updateItemQuantity("arrows", 1, "-");
+								t.arrows++;
+								advantage[1]--;
+								if (advantage[1] == 0) { t.advantage.splice(i, 1); }
+								AudioHelper.play({src: audio_src, volume: 0.8, autoplay: true, loop: false}, true);
 							}
-						})
-						let d = new Dialog({
-							title: "Advantage Sources",
-							content: "Please choose a source of advantage.",
-							buttons: buttons
-						}).render(true);
-					}
-				},
-				no: {
-					icon: '<i class="fas fa-times"></i>',
-					label: "No",
-					callback: event =>  {
-						bow.rollAttack({fastForward: true }).then(roll => { t.damage.longbow = [roll.result.split(" ")[0] == 20, null, false] });
-						u.updateItemQuantity("arrows", 1, "-");
-						t.arrows++;
-						AudioHelper.play({src: audio_src, volume: 0.8, autoplay: true, loop: false}, true);
-					}
+						}
+					})
+					let d = new Dialog({
+						title: "Advantage Sources",
+						content: "Please choose a source of advantage.",
+						buttons: buttons
+					}).render(true);
+				}
+			},
+			no: {
+				icon: '<i class="fas fa-times"></i>',
+				label: "No",
+				callback: event =>  {
+					bow.rollAttack({fastForward: true }).then(roll => { t.damage.longbow = [roll.result.split(" ")[0] == 20, null, false] });
+					u.updateItemQuantity("arrows", 1, "-");
+					t.arrows++;
+					AudioHelper.play({src: audio_src, volume: 0.8, autoplay: true, loop: false}, true);
 				}
 			}
-		}).render(true);
+		}
+	})
+
+
+const lucky_dialog = u.luckyPrompt(event => {
+	bow.rollAttack({fastForward: true, flavor: `Longbow w/ Lucky (Reroll) - Attack Roll` }).then(roll => { t.damage.longbow = [roll.result.split(" ")[0] == 20, null, false] });
+	t.lucky = false;
+	t.advantage = t.advantage.filter(arr => arr[0] != "Lucky");
+	AudioHelper.play({src: audio_src, volume: 0.8, autoplay: true, loop: false}, true);
+}, event => {
+	if (t.advantage.length > 0) {
+		advantage_dialog.render(true);
+	} else {
+		bow.rollAttack({fastForward: true, advantage: event.shiftKey, disadvantage: event.ctrlKey }).then(roll => { t.damage.longbow = [roll.result.split(" ")[0] == 20, null, false] });
+		u.updateItemQuantity("arrows", 1, "-");
+		t.arrows++;
+		AudioHelper.play({src: audio_src, volume: 0.8, autoplay: true, loop: false}, true);
+	}
+})
+
+if (arrows.data.data.quantity > 0) {
+	if (t.lucky && t.damage.longbow) {
+		lucky_dialog.render(true);
+	} else if (t.advantage.length > 0) {
+		advantage_dialog.render(true);
 	} else {
 		bow.rollAttack({fastForward: true, advantage: event.shiftKey, disadvantage: event.ctrlKey }).then(roll => { t.damage.longbow = [roll.result.split(" ")[0] == 20, null, false] });
 		u.updateItemQuantity("arrows", 1, "-");

@@ -9,6 +9,14 @@ game.saved_macro = {
 		isPressed: key => { return !!game.saved_macro.tracking.keys[key.toLowerCase()] },
 		simpleName: item_name => { return item_name.replaceAll(" ", "_").toLowerCase() },
 		fancyName: item_name => { return item_name.replaceAll("_", " ").toTitleCase() },
+		luckyPrompt: (yes, no) => {
+			return new Dialog({
+			title: "Lucky",
+			content: "Is this a reroll for the Lucky feat?",
+			buttons: {
+				yes: { icon: '<i class="fas fa-check"></i>', label: "Yes", callback: yes },
+				no: { icon: '<i class="fas fa-times"></i>', label: "No", callback: no }}});
+		},
 		getItemByName: (item_name, character) => {
 			const current_char = character ? character : game.user.character;
 			const vals = [...current_char.data.items.values()]

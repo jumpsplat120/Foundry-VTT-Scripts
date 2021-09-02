@@ -26,7 +26,7 @@ if (damages.length > 0) {
 					const checkboxes = event[0].querySelectorAll(":scope input[type='checkbox']");
 					const formula = [];
 					checkboxes.forEach(checkbox => { if (checkbox.checked) { checked_boxes[checked_boxes.length] = utils.getItemByName(checkbox.value); }});
-					const weapon_type = checked_boxes.filter(item => item.type == "weapon" && item.name != "favored_foe")[0].labels.damageTypes;
+					const weapon_type = checked_boxes.filter(item => item.type == "weapon" && item.name != "Favored Foe")[0].labels.damageTypes;
 					checked_boxes.forEach((item, index) => {
 						const simple = utils.simpleName(item.name);
 						const data = attacks[simple];

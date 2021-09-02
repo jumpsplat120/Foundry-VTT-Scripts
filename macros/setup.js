@@ -101,13 +101,11 @@ game.saved_macro = {
 					button_ids.forEach(item => {
 						run.forEveryone(item => {
 							if (item.onclick) {
-								let wrapper = function() { item.onclick(document.getElementById(item.uuid), ...item.data) }
-								document.getElementById(item.uuid).onclick = wrapper;
+								document.getElementById(item.uuid).onclick = function() { item.onclick(document.getElementById(item.uuid), ...item.data) };
 							}
 							
 							if (item.onmouseover) {
-								let wrapper = function() { item.onmouseover(document.getElementById(item.uuid), ...item.data) }
-								document.getElementById(item.uuid).onmouseover = wrapper;
+								document.getElementById(item.uuid).onmouseover = function() { item.onmouseover(document.getElementById(item.uuid), ...item.data) };
 							}
 						}, item)
 					});

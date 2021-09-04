@@ -22,18 +22,18 @@ new Dialog({
             label: "Move Enemy",
             callback: event => {
                 if (target) {
-                    utils.chatMessage({ img: gs.img, content: gs.name + ` (Move ${name})` }, { small: `${intro} On a <b>successful</b> hit, ${name} must roll a Strength Saving throw against Taylor's Spell Save DC (<b>${game.user.character.data.data.attributes.spelldc}</b>) or be moved up to 15 feet horizontally.` }, [{
-                        title: `${name}'s Strength Saving Throw`,
-                        onclick: function(button, target) {
-                            utils.chatMessage(null, {regular: "AAA"})
-                            //target.actor.rollAbilitySave("str", { fastForward: true }).then(roll => {
-                            //    const content = button.parentElement.parentElement.parentElement;
-                            //    button.classList.add("nohover");
-                            //    button.innerHTML = `<h3 style="font-weight: bold;">${roll.total}</h3>`;
-                            //});
-                        },
-                        data: [ target ]
-                    }])
+                    target.actor.rollAbilitySave("str", { fastForward: true, chatMessage: false }).then(roll => {
+                        utils.chatMessage({ img: gs.img, content: gs.name + ` (Move ${name})` }, { small: `${intro} On a <b>successful</b> hit, ${name} must roll a Strength Saving throw against Taylor's Spell Save DC (<b>${game.user.character.data.data.attributes.spelldc}</b>) or be moved up to 15 feet horizontally.` }, [{
+                            title: `${name}'s Strength Saving Throw`,
+                            onclick: function(button, roll) {
+                                const content = button.parentElement.parentElement.parentElement;
+                                button.classList.add("nohover");
+                                console.log(roll)
+                                button.innerHTML = `<h3 style="font-weight: bold;">${roll.total}</h3>`;
+                            },
+                            data: [ roll ]
+                        }])
+                    });
                 } else {
                     Dialog.prompt({
                         title: "Missing Target",

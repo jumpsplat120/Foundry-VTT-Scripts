@@ -28,7 +28,6 @@ new Dialog({
                             onclick: function(button, roll) {
                                 const content = button.parentElement.parentElement.parentElement;
                                 button.classList.add("nohover");
-                                console.log(roll)
                                 button.innerHTML = `<h3 style="font-weight: bold;">${roll.total}</h3>`;
                             },
                             data: [ roll ]

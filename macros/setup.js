@@ -7,7 +7,7 @@ game.saved_macro = {
 	},
 	actor: { },
 	utils: {
-		playSound: (src, volume, autoplay = true, loop = false) => { AudioHelper.play({ src, volume, autoplay, loop }, false); },
+		playSound: (src, volume = 0.8, autoplay = true, loop = false) => { AudioHelper.play({ src, volume, autoplay, loop }, false); },
 		isPressed: key => { return !!game.saved_macro.tracking.keys[key.toLowerCase()] },
 		simpleName: item_name => { return item_name.replaceAll(" ", "_").toLowerCase() },
 		fancyName: item_name => { return item_name.replaceAll("_", " ").toTitleCase() },

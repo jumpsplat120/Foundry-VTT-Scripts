@@ -18,7 +18,7 @@ const rollAttackAndPlaySound = (advantage, disadvantage, flavor) => {
     dagger.rollAttack(roll_options).then(addDamageEntry);
 	playRandomAudio();
 }
-const advantageDialog =  _   => { new Dialog({
+const advantageDialog =  _  => { new Dialog({
 		title: "Advantage",
 		content: "You have sources of advantage! Would you like to use one?",
 		buttons: {

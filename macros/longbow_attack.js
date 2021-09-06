@@ -14,7 +14,7 @@ const advantage_dialog = new Dialog({
 			yes: {
 				icon: '<i class="fas fa-check"></i>',
 				label: "Yes",
-				callback: event =>  {
+				callback: event => {
 					const buttons = {}
 					t.advantage.forEach((advantage, i) => {
 						buttons[u.simpleName(advantage[0])] = {

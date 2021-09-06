@@ -7,6 +7,7 @@ game.saved_macro = {
 	},
 	actor: { },
 	utils: {
+		playSound: (src, volume, autoplay = true, loop = false) => { AudioHelper.play({ src, volume, autoplay, loop }, false); },
 		isPressed: key => { return !!game.saved_macro.tracking.keys[key.toLowerCase()] },
 		simpleName: item_name => { return item_name.replaceAll(" ", "_").toLowerCase() },
 		fancyName: item_name => { return item_name.replaceAll("_", " ").toTitleCase() },
@@ -18,14 +19,17 @@ game.saved_macro = {
 				yes: { icon: '<i class="fas fa-check"></i>', label: "Yes", callback: yes },
 				no: { icon: '<i class="fas fa-times"></i>', label: "No", callback: no }}});
 		},
+		createButton: (label, fa_icon, callback) => {
+			return { icon: `<i class="fas fa-${fa_icon}"></i>`,
+					 label: label,
+					 callback: callback }
+		},
 		getItemByName: (item_name, character) => {
+			character = character || game.user.character;
+			
 			const utils = game.saved_macro.utils;
-			if (character) {
-				const vals = [...character.data.items.values()]
-				for (let i = 0; i < vals.length; i++) { if (utils.simpleName(vals[i].name) === utils.simpleName(item_name)) { return vals[i] } }
-			} else {
-				game.items.getName(utils.fancyName(item_name));
-			}
+			const vals = [...character.data.items.values()]
+			for (let i = 0; i < vals.length; i++) { if (utils.simpleName(vals[i].name) === utils.simpleName(item_name)) { return vals[i] } }
 		},
 		getPronouns: character => {
 			const gender = character.data.data.details.gender.toLowerCase();
@@ -114,7 +118,7 @@ game.saved_macro = {
 		},
 		guid: _ => {
 			function _p8(s) {
-				let p = (Math.random().toString(16)+"000000000").substr(2,8);
+				let p = (Math.random().toString(16) + "000000000").substr(2,8);
 				return s ? "-" + p.substr(0,4) + "-" + p.substr(4,4) : p ;
 			}
 			return _p8() + _p8(true) + _p8(true) + _p8();

@@ -19,6 +19,43 @@ game.saved_macro = {
 				yes: { icon: '<i class="fas fa-check"></i>', label: "Yes", callback: yes },
 				no: { icon: '<i class="fas fa-times"></i>', label: "No", callback: no }}});
 		},
+		advantagePrompt: (yes, no) => {
+			return new Dialog({
+				title: "Advantage",
+				content: "You have sources of advantage! Would you like to use one?",
+				buttons: {
+					yes: {
+						icon: '<i class="fas fa-check"></i>',
+						label: "Yes",
+						callback: event => {
+							const buttons = {}
+							game.saved_macro.tracking.advantage.forEach((advantage, i) => {
+								buttons[u.simpleName(advantage[0])] = {
+									icon: `<i class="fas fa-${advantage[2]}"></i>`,
+									label: advantage[0],
+									callback: _ => {
+										advantage[3]();
+										yes(advantage);
+										advantage[1]--;
+										if (advantage[1] == 0) { t.advantage.splice(i, 1); }
+									}
+								}
+							})
+							let d = new Dialog({
+								title: "Advantage Sources",
+								content: "Please choose a source of advantage.",
+								buttons: buttons
+							}).render(true);
+						}
+					},
+					no: {
+						icon: '<i class="fas fa-times"></i>',
+						label: "No",
+						callback: no
+					}
+				}
+			})
+		}
 		createButton: (label, fa_icon, callback) => {
 			return { icon: `<i class="fas fa-${fa_icon}"></i>`,
 					 label: label,

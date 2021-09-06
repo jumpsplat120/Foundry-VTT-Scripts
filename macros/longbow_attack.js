@@ -27,7 +27,7 @@ const advantage_dialog = new Dialog({
 								t.arrows++;
 								advantage[1]--;
 								if (advantage[1] == 0) { t.advantage.splice(i, 1); }
-								AudioHelper.play({src: audio_src, volume: 0.8, autoplay: true, loop: false}, true);
+								u.playSound(audio_src);
 							}
 						}
 					})
@@ -77,7 +77,7 @@ if (arrows.data.data.quantity > 0) {
 		bow.rollAttack({fastForward: true, advantage: event.shiftKey, disadvantage: event.ctrlKey }).then(roll => { t.damage.longbow = [roll.result.split(" ")[0] == 20, null, false] });
 		u.updateItemQuantity("arrows", 1, "-");
 		t.arrows++;
-		AudioHelper.play({src: audio_src, volume: 0.8, autoplay: true, loop: false}, true);
+		//AudioHelper.play({src: audio_src, volume: 0.8, autoplay: true, loop: false}, true);
 	}
 } else {
 	Dialog.prompt({

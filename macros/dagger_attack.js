@@ -3,8 +3,7 @@ const u = s.utils;
 const t = s.tracking;
 const dagger = u.getItemByName("dagger");
 
-const sfx = [];
-const audio_src = sfx[Math.floor(Math.random() * sfx.length)];
+const audio_src = s.sounds.dagger.swing.random();
 
 const playRandomAudio = _    => { AudioHelper.play({src: audio_src, volume: 0.8, autoplay: true, loop: false}, true); }
 const addDamageEntry  = roll => { t.damage.dagger = [roll.result.split(" ")[0] == 20, null, false]; } 
@@ -18,7 +17,7 @@ const rollAttackAndPlaySound = (advantage, disadvantage, flavor) => {
     dagger.rollAttack(roll_options).then(addDamageEntry);
 	playRandomAudio();
 }
-const advantageDialog =  _  => { new Dialog({
+const advantageDialog = _ => { new Dialog({
 		title: "Advantage",
 		content: "You have sources of advantage! Would you like to use one?",
 		buttons: {

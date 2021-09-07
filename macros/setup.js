@@ -1,5 +1,5 @@
 //Run this before running any other macro
-const url = "https://www.jumpsplat120.com/sfx/";
+const url = "https://www.jumpsplat120.com/assets/sfx/";
 
 game.saved_macro = {
 	sounds: { bruh: `${url}misc/bruh.mp3`, bugs: `${url}misc/bugs.mp3` },
@@ -53,7 +53,7 @@ game.saved_macro = {
 					}
 				}
 			})
-		}
+		},
 		createButton: (label, fa_icon, callback) => {
 			return { icon: `<i class="fas fa-${fa_icon}"></i>`,
 					 label: label,
@@ -168,8 +168,8 @@ game.saved_macro = {
 
 const sounds = game.saved_macro.sounds;
 
-sounds.bow = { draw = [], hit = [] };
-sounds.dagger = { swing = [], hit = [] };
+sounds.bow = { draw: [], hit: [] };
+sounds.dagger = { swing: [], hit: [] };
 
 for (let i = 1; i < 6; i++) {
 	sounds.bow.draw[sounds.bow.draw.length] = `${url}bow/draw/${i}.mp3`;

@@ -2,7 +2,7 @@
 const url = "https://www.jumpsplat120.com/sfx/";
 
 game.saved_macro = {
-	sounds: { bruh: `${url}bruh.mp3`, bugs: `${url}bugs.mp3` },
+	sounds: { bruh: `${url}misc/bruh.mp3`, bugs: `${url}misc/bugs.mp3` },
 	actor: { },
 	utils: {
 		playSound: (src, volume = 0.8, autoplay = true, loop = false) => { AudioHelper.play({ src, volume, autoplay, loop }, false); },
@@ -166,9 +166,14 @@ game.saved_macro = {
 	tracking: { arrows: 0, keys: {}, advantage: [], damage: {} }
 };
 
-game.saved_macro.sounds.bow = [];
+const sounds = game.saved_macro.sounds;
 
-for (let i = 1; i < 6; i++) { game.saved_macro.sounds.bow[game.saved_macro.sounds.bow.length] = `${url}bow${i}.mp3`; }
+sounds.bow = { draw = [], hit = [] };
+sounds.dagger = { swing = [], hit = [] };
+
+for (let i = 1; i < 6; i++) {
+	sounds.bow.draw[sounds.bow.draw.length] = `${url}bow/draw/${i}.mp3`;
+}
 
 //track keys, ~~can be used for changing behaviour on shift/ctrl clicks for macros~~
 //turns out macros have an "event" variable to access that has .ctrlKey and .shiftKey

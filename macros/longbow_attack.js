@@ -4,7 +4,7 @@ const t = s.tracking;
 const bow = u.getItemByName("longbow");
 const arrows = u.getItemByName("arrows");
 
-const audio_src = s.sounds.bow.random();
+const audio_src = s.sounds.bow.draw.random();
 
 const advantage_dialog = new Dialog({
 		title: "Advantage",

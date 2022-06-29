@@ -181,7 +181,7 @@ for (let i = 1; i < 6; i++) {
 document.addEventListener("keydown", event => { game.saved_macro.tracking.keys[event.key.toLowerCase()] = true; });
 document.addEventListener("keyup", event => { game.saved_macro.tracking.keys[event.key.toLowerCase()] = false; });
 
-run.forEveryone(_ => {
+run.forEveryone(function() {
 	//sending no hover css to everyone
 	const css = `button.nohover {
 		background: rgba(0, 0, 0, 0.1);
@@ -193,6 +193,7 @@ run.forEveryone(_ => {
 	button.nohover:hover {
 		color: #191813;
 	}`;
+
 	const style = document.createElement("style");
 
 	if (style.styleSheet) {
@@ -207,7 +208,8 @@ run.forEveryone(_ => {
 String.prototype.toTitleCase = function() {
     let upper = true;
     let str   = "";
-    for (let i = 0, l = this.length; i < l; i++) {
+    
+	for (let i = 0, l = this.length; i < l; i++) {
 		const chr = this[i];
         if (chr == " ") {
             upper = true;
@@ -217,8 +219,10 @@ String.prototype.toTitleCase = function() {
 			upper = false;
 		}
     }
-    return str
+
+    return str;
 }
+
 Object.defineProperty(Object.prototype, "length", {
 	get() { return Object.keys(this).length; },
 	set() { },

@@ -427,11 +427,12 @@ utils.getPronouns = character => {
 		   																											 ["they", "them", "themselves", "theirs", "their"];
 }
 
-//increase the quantity of an item.
-utils.increaseItemQuantity = (item, amount) => {
+
+function changeQuantity(item, amount, type) {
 	if (typeof item == "string") {
 		const i = utils.getItemByName(item);
-		
+		let total = 0;
+
 		if (!i) { 
 			ui.notifications.error(`Utils | Failed to find an item by the name ${item}`);
 			return;
@@ -446,73 +447,36 @@ utils.increaseItemQuantity = (item, amount) => {
 	}
 
 	if (typeof amount !== "number") {
-		ui.notifications.error(`Utils | ${amount} is not a numeric value to increase quantity by.`);
+		const grammar = type === "set" : "to" ? "by";
+		ui.notifications.error(`Utils | ${amount} is not a numeric value to ${type} quantity ${grammar}.`);
 		return;
 	}
 	
-	item.update({ "data.quantity": item.data.data.quantity + amount });
+	if (type == "decrease" && item.data.data.quantity - amount >= 0) {
+		ui.notifications.warn(`Utils | Subtracting ${amount} ${item.name} will put you under zero quantity. This should be accounted for. Setting quantity to zero...`);
+	} else if (type == "set" && amount < 0) {
+		ui.notifications.warn(`Utils | ${amount} is less than zero. This should be handled. Setting quantity to zero...`);
+	} else {
+		if (type == "increase") { total = item.data.data.quantity + amount; }
+		if (type == "decrease") { total = item.data.data.quantity - amount; }
+		if (type == "set")      { total = amount; }
+	}
+
+	item.update({ "data.quantity": total });
+}
+//increase the quantity of an item.
+utils.increaseItemQuantity = (item, amount) => {
+	changeQuantity(item, amount, "increase");
 }
 
 //decrease thr quantity of an item.
 utils.decreaseItemQuantity = (item, amount) => {
-	if (typeof item == "string") {
-		const i = utils.getItemByName(item);
-		
-		if (!i) { 
-			ui.notifications.error(`Utils | Failed to find an item by the name ${item}`);
-			return;
-		}
-
-		item = i;
-	}
-	
-	if (item?.data?.data?.quantity === undefined) {
-		ui.notifications.error(`Utils | ${item.name} does not have a quantity to change.`);
-		return;
-	}
-
-	if (typeof amount !== "number") {
-		ui.notifications.error(`Utils | ${amount} is not a numeric value to decrease quantity by.`);
-		return;
-	}
-
-	if (item.data.data.quantity - amount >= 0) {
-		ui.notifications.warn(`Utils | Consuming ${amount} ${item.name} will put you under zero quantity. This should be accounted for. Setting quantity to zero...`);
-		item.update({ "data.quantity": 0 });
-	} else {
-		item.update({ "data.quantity": item.data.data.quantity - amount });
-	}
+	changeQuantity(item, amount, "decrease");
 }
 
 //set the quantity of an item.
 utils.setItemQuantity = (item, amount) => {
-	if (typeof item == "string") {
-		const i = utils.getItemByName(item);
-		
-		if (!i) { 
-			ui.notifications.error(`Utils | Failed to find an item by the name ${item}`);
-			return;
-		}
-
-		item = i;
-	}
-	
-	if (item?.data?.data?.quantity === undefined) {
-		ui.notifications.error(`Utils | ${item.name} does not have a quantity to change.`);
-		return;
-	}
-
-	if (typeof amount !== "number") {
-		ui.notifications.error(`Utils | ${amount} is not a numeric value to set quantity to.`);
-		return;
-	}
-
-	if (item.data.data.quantity - amount >= 0) {
-		ui.notifications.warn(`Utils | ${amount} is less than zero. This should be handled. Setting quantity to zero...`);
-		item.update({ "data.quantity": 0 });
-	} else {
-		item.update({ "data.quantity": amount });
-	}
+	changeQuantity(item, amount, "set");
 }
 
 //returns a global uuid, in the format of '94f87472-e276-6d50-71e5-880e3ca6675e'

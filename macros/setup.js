@@ -433,7 +433,7 @@ utils.increaseItemQuantity = (item, amount) => {
 		const i = utils.getItemByName(item);
 		
 		if (!i) { 
-			ui.notification.error(`Utils | Failed to find an item by the name ${item}`);
+			ui.notifications.error(`Utils | Failed to find an item by the name ${item}`);
 			return;
 		}
 
@@ -441,12 +441,12 @@ utils.increaseItemQuantity = (item, amount) => {
 	}
 	
 	if (item?.data?.data?.quantity === undefined) {
-		ui.notification.error(`Utils | ${item.name} does not have a quantity to change.`);
+		ui.notifications.error(`Utils | ${item.name} does not have a quantity to change.`);
 		return;
 	}
 
 	if (typeof amount !== "number") {
-		ui.notification.error(`Utils | ${amount} is not a numeric value to increase quantity by.`);
+		ui.notifications.error(`Utils | ${amount} is not a numeric value to increase quantity by.`);
 		return;
 	}
 	
@@ -459,7 +459,7 @@ utils.decreaseItemQuantity = (item, amount) => {
 		const i = utils.getItemByName(item);
 		
 		if (!i) { 
-			ui.notification.error(`Utils | Failed to find an item by the name ${item}`);
+			ui.notifications.error(`Utils | Failed to find an item by the name ${item}`);
 			return;
 		}
 
@@ -467,17 +467,17 @@ utils.decreaseItemQuantity = (item, amount) => {
 	}
 	
 	if (item?.data?.data?.quantity === undefined) {
-		ui.notification.error(`Utils | ${item.name} does not have a quantity to change.`);
+		ui.notifications.error(`Utils | ${item.name} does not have a quantity to change.`);
 		return;
 	}
 
 	if (typeof amount !== "number") {
-		ui.notification.error(`Utils | ${amount} is not a numeric value to decrease quantity by.`);
+		ui.notifications.error(`Utils | ${amount} is not a numeric value to decrease quantity by.`);
 		return;
 	}
 
 	if (item.data.data.quantity - amount >= 0) {
-		ui.notification.warn(`Utils | Consuming ${amount} ${item.name} will put you under zero quantity. This should be accounted for. Setting quantity to zero...`);
+		ui.notifications.warn(`Utils | Consuming ${amount} ${item.name} will put you under zero quantity. This should be accounted for. Setting quantity to zero...`);
 		item.update({ "data.quantity": 0 });
 	} else {
 		item.update({ "data.quantity": item.data.data.quantity - amount });
@@ -490,7 +490,7 @@ utils.setItemQuantity = (item, amount) => {
 		const i = utils.getItemByName(item);
 		
 		if (!i) { 
-			ui.notification.error(`Utils | Failed to find an item by the name ${item}`);
+			ui.notifications.error(`Utils | Failed to find an item by the name ${item}`);
 			return;
 		}
 
@@ -498,17 +498,17 @@ utils.setItemQuantity = (item, amount) => {
 	}
 	
 	if (item?.data?.data?.quantity === undefined) {
-		ui.notification.error(`Utils | ${item.name} does not have a quantity to change.`);
+		ui.notifications.error(`Utils | ${item.name} does not have a quantity to change.`);
 		return;
 	}
 
 	if (typeof amount !== "number") {
-		ui.notification.error(`Utils | ${amount} is not a numeric value to set quantity to.`);
+		ui.notifications.error(`Utils | ${amount} is not a numeric value to set quantity to.`);
 		return;
 	}
 
 	if (item.data.data.quantity - amount >= 0) {
-		ui.notification.warn(`Utils | ${amount} is less than zero. This should be handled. Setting quantity to zero...`);
+		ui.notifications.warn(`Utils | ${amount} is less than zero. This should be handled. Setting quantity to zero...`);
 		item.update({ "data.quantity": 0 });
 	} else {
 		item.update({ "data.quantity": amount });

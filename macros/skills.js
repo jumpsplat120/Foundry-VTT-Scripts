@@ -33,6 +33,7 @@ const rollAndCheck = (skill_id, skill_name) => {
         rollSkill(skill_id, null, shift, ctrl);
     }
 }
+
 new Dialog({
     title: "Skill Selection",
     content: "",

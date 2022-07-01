@@ -353,12 +353,14 @@ utils.fancyName  = item_name => item_name.replaceAll("_", " ").toTitleCase();
 //creates a prompt for rerolling via the lucky feat. takes two callbacks,
 //which are called when the prompt is answered yes or no.
 utils.luckyPrompt = (yes, no) => {
-	return new Dialog({
-	title: "Lucky",
-	content: "Is this a reroll for the Lucky feat?",
-	buttons: {
-		yes: { icon: '<i class="fas fa-check"></i>', label: "Yes", callback: yes },
-		no:  { icon: '<i class="fas fa-times"></i>', label: "No", callback: no }}});
+	new Dialog({
+		title: "Lucky",
+		content: "Is this a reroll for the Lucky feat?",
+		buttons: {
+			yes: { icon: '<i class="fas fa-check"></i>', label: "Yes", callback: yes },
+			no:  { icon: '<i class="fas fa-times"></i>', label: "No", callback: no   }
+		}
+	}).render(true);
 }
 
 //creates a prompt for handling advantage. takes two callbacks, which are

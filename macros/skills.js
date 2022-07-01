@@ -1,25 +1,23 @@
-const saved = game.saved_macro;
-const track = saved.tracking;
-const utils = saved.utils;
-
 const shift = event.shiftKey;
 const ctrl  = event.ctrlKey;
 
 const rollSkill = (ability, flavor, advantage, disadvantage) => {
     const options = { fastForward: true };
-    if (flavor) { options.flavor = flavor; }
-    if (advantage) { options.advantage = advantage; }
+
+    if (flavor)       { options.flavor       = flavor;       }
+    if (advantage)    { options.advantage    = advantage;    }
     if (disadvantage) { options.disadvantage = disadvantage; }
-    game.user.character.rollSkill(ability, options)
+
+    game.user.character.rollSkill(ability, options);
 }
 
 const rollAndCheck = (skill_id, skill_name) => {
-    if (track.lucky) {
+    if (utils.tracking.lucky) {
         utils.luckyPrompt(event => {
             rollSkill(skill_id, `${skill_name} Skill Check w/ Lucky (Reroll)`);
-            track.lucky = false;
+            utils.tracking.lucky = false;
         }, event => {
-            if (track.advantage.length > 0) {
+            if (utils.tracking.advantage.length > 0) {
                 utils.advantagePrompt(arr => {
                     rollSkill(skill_id, `${skill_name} Skill Check w/ ${arr[0]}`, true);
                 }, _ => {

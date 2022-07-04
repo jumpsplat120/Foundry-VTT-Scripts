@@ -462,7 +462,7 @@ function changeQuantity(item, amount, type) {
 	}
 
 	if (typeof amount !== "number") {
-		const grammar = type === "set" : "to" ? "by";
+		const grammar = type === "set" ? "to" : "by";
 		ui.notifications.error(`Utils | ${amount} is not a numeric value to ${type} quantity ${grammar}.`);
 		return;
 	}

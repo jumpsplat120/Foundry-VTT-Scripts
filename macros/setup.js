@@ -298,7 +298,7 @@ class Message {
 							</header>
 							<ol class="dice-rolls">`
 					
-					for (const die of tooltip.dice) { res += `<li class="roll die d${die.size} ${die.special}">${die.value}</li>` }
+					for (const die of tooltip?.dice ?? []) { res += `<li class="roll die d${die.size} ${die.special}">${die.value}</li>` }
 
 					res += `</ol>`
 				}

@@ -316,17 +316,17 @@ class Message {
 		return res;
 	}
 
-	send() {
-		const data = {
-			content: `${this.#content_html()}
+	send(data = {}) {
+		data.content = `${this.#content_html()}
 			<div class="dnd5e chat-card item-card">
 				${this.#header_html()}
 				${this.#card_content_html()}
 				${this.#buttons_html()}
-				${this.#dice_html()}
+			</div>
+			${this.#dice_html()}
+			<div class="dnd5e chat-card item-card">
 				${this.#footer_html()}
 			</div>`
-		}
 		
 		//the speaker is either the passed this.speaker, or uses the users character name.
 		data.speaker = { alias: this.speaker ?? game.user.character.name };

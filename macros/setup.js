@@ -112,7 +112,7 @@ class Message {
 	}
 
 	setHeaderContent(text) {
-		if (url === undefined || url === null) {
+		if (text === undefined || text === null) {
 			delete this.#header.content;
 		} else {
 			this.#header.content = text;

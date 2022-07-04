@@ -446,7 +446,6 @@ utils.roll = (formula) => {
 			while (order[order.length - 1].constructor.name == "NumericTerm") {
 				const term = order[order.length - 1];
 				const label = term.options.flavor;
-				console.log(label);
 				message.addDieTooltip(label.match(/{(.*?)}/)?.[1] ?? "", label.replace(/{.*?}/, ""), term.number);
 				order.pop();
 			}

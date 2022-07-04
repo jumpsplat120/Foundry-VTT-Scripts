@@ -316,7 +316,8 @@ class Message {
 		return res;
 	}
 
-	send(data = {}) {
+	send(data) {
+		data = data ?? this.data ?? {};
 		data.content = `${this.#content_html()}
 			<div class="dnd5e chat-card item-card">
 				${this.#header_html()}

@@ -353,7 +353,7 @@ utils.Message = Message;
 //That way, not only do you get the damage types, but you can also say where the source is coming from.
 //The "title" is actually just the formula part, but you don't need to write 2d6 and then also show 2 d6s,
 //so instead that space can be used for something more informational.
-utils.roll = (formula, flavor = "") => {
+utils.roll = (formula) => {
 	//hide titles in the labels so it's parsed by foundry's roll class
 	//first, we wrap any squiggly brackets in square brackets
 	//then, any back to back (][) square brackets should be removed
@@ -364,8 +364,6 @@ utils.roll = (formula, flavor = "") => {
 		const roll    = new Roll(formula);
 		const message = new utils.Message();
 
-		//add in flavor
-		message.setFlavor(flavor);
 		//remove labels and only display math
 		message.addDieFormula(formula.replace(/\[.*?\]/g, "").replace(/\{.*?\}/g, ""));
 
@@ -410,7 +408,6 @@ utils.roll = (formula, flavor = "") => {
 					data.formula = flavor.match(/{(.*?)}/)[1];
 				}
 
-				console.log()
 				//flavor is whatever is left after you take out the title.
 				data.flavor = flavor.replace(/{.*?}/, "");
 			}
@@ -458,16 +455,18 @@ utils.roll = (formula, flavor = "") => {
 			order.pop();
 		}
 		
-		message.send({ type: CONST.CHAT_MESSAGE_TYPES.ROLL, roll: real_roll });
+		message.data = { type: CONST.CHAT_MESSAGE_TYPES.ROLL, roll: real_roll };
+
+		return message;
 	}
 
 	//make a roll using the formula, then turn into into a message
 	//then get the html from that message (not everything needs to be
 	//async foundry)
-	new Roll(formula).roll({async: true}).then(r =>  {
-		r.toMessage(null, {create: false}).then(e => {
-			new ChatMessage(e).getHTML().then(e =>   {
-				buildRoll(r, e[0].outerHTML);
+	return new Roll(formula).roll({async: true}).then(r => {
+		return r.toMessage(null, {create: false}).then(e => {
+			return new ChatMessage(e).getHTML().then(e => {
+				return buildRoll(r, e[0].outerHTML);
 			})
 		})
 	})

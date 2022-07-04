@@ -165,6 +165,7 @@ class Message {
 	//size: 4, 6, 8, 12, 20
 	//value: anything (can only fit two letters before wrapping)
 	//special (optional): crit (makes it green), fail (makes it pinkish red), unused (grays it out)
+	//If not specified, defaults to regular behaviour (max value of die size is green, 1's are red)
 	addDieTooltip(formula = "", flavor = "", total = "", ...dice) {
 		if (!this.#dice.tooltip) { this.#dice.tooltip = []; }
 
@@ -175,7 +176,12 @@ class Message {
 
 			const die_data = { size: die.size.toString(), value: die.value.toString() };
 			
-			if (die.special) { die_data.special = ({ crit: "max", fail: "min", unused: "disabled" })[die.special]; }
+			if (die.special) {
+				die_data.special = ({ max: "max", min: "min", discarded: "discarded", crit: "max", fail: "min", unused: "discarded" })[die.special];
+			} else if (Number(die_data.value) != NaN) {
+				if (die_data.value == die_data.size) { die_data.special = "max"; }
+				if (die_data.value == 1) { die_data.special = "min"; }
+			}
 
 			data.dice[data.dice.length] = die_data;
 		}

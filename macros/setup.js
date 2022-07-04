@@ -346,7 +346,14 @@ window.utils = {};
 utils.Message = Message;
 
 //Helper for the helper. Plays a sound with intelligent defaults
-utils.playSound  = (src, volume = 0.8, autoplay = true, loop = false, send = false) => AudioHelper.play({ src, volume, autoplay, loop }, send);
+utils.playSound  = (src, volume = 0.8, autoplay = true, loop = false, send = false) => {
+	if (!src) {
+		ui.notifications.warn("No sound was given to playSound.");
+		return;
+ 	}
+
+	AudioHelper.play({ src, volume, autoplay, loop }, send);
+}
 
 //Returns true if a key is being pressed.
 utils.isPressed  = key => !!utils.pressed_keys[key.toLowerCase()];

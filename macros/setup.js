@@ -345,6 +345,133 @@ window.utils = {};
 //Message class for building a message.
 utils.Message = Message;
 
+//Takes a formula, and turns it into a better message. Labels such as 5[fire] are removed from
+//the initial formula, but still appear in the drop down. Also, non dice show up in the drop
+//down along with a label. Sounds still play. There's also a new title, using {brackets}. This is
+//for the "title" of that part of the roll. So a use case would be 1d6[fire] + 1d4[holy]{Magic Enchantment}.
+//That way, not only do you get the damage types, but you can also say where the source is coming from.
+//The "title" is actually just the formula part, but you don't need to write 2d6 and then also show 2 d6s,
+//so instead that space can be used for something more informational.
+utils.roll = (formula, flavor = "") => {
+	//hide titles in the labels so it's parsed by foundry's roll class
+	//first, we wrap any squiggly brackets in square brackets
+	//then, any back to back (][) square brackets should be removed
+	formula = formula.replace(/({.*?})/g, "[$1]").replace(/\]\[/g, "");
+
+	//The function to use once we get the html from the nested promises.
+	function buildRoll(real_roll, html) {
+		const roll    = new Roll(formula);
+		const message = new utils.Message();
+
+		//add in flavor
+		message.setFlavor(flavor);
+		//remove labels and only display math
+		message.addDieFormula(formula.replace(/\[.*?\]/g, "").replace(/\{.*?\}/g, ""));
+
+		//find the die total from the html, and use that
+		message.addDieTotal(html.match(/<h4 class="dice-total">(\d+)<\/h4>/)[1]);
+
+		//function for recursive searching of terms
+		function iterate(roll, arr = []) {
+			for (const term of roll.terms) {
+				//if it's a parenthetical term, make a new roll out of it, and get the order of stuff we care about.
+				const name    = term.constructor.name;
+				const formula = term.formula;
+
+				if (name == "ParentheticalTerm") { arr = iterate(new Roll(term.term), arr); }
+
+				//add term to result array if the constructor is 'Die'
+				if (name == "Die") { arr[arr.length] = term; }
+				//but only add a numeric term if it's labeled. If there's no label then there's no point in adding it
+				//since we are really only adding it below for labeling purposes
+				if (name == "NumericTerm" && (formula.includes("{") || formula.includes("["))) { arr[arr.length] = term; }
+			}
+
+			//flatten the array because the parathneticals will have it wonky
+			return arr;
+		}
+		
+		//using the formula, create a roll, but don't parse it, and look at all the terms to determine
+		//order of tooltips. Reversing it so we can just pop the values off.
+		const order = iterate(roll);
+		
+		//get all of the pieces of already rolled die results, matcher is different to include newlines and spacing
+		//add the tooltips to the new roll instance, adding in numeric values when appropriate
+		for (const match of [...html.matchAll(/<section class="tooltip-part">([^]*?)<\/section>/g)]) {
+			const tooltip = match[1];
+			const data    = {};
+			let flavor    = tooltip.match(/<span class="part-flavor">(.*?)<\/span>/);
+
+			if (flavor) {
+				flavor = flavor[1];
+				if (flavor.includes("{")) {
+					//if there's a title, use that
+					data.formula = flavor.match(/{(.*?)}/)[1];
+				}
+
+				console.log()
+				//flavor is whatever is left after you take out the title.
+				data.flavor = flavor.replace(/{.*?}/, "");
+			}
+
+			//if there's not already a formula, use the one pulled from the html
+			if (!data.formula) { data.formula = tooltip.match(/<span class="part-formula">(.*?)<\/span>/)[1]; }
+
+			data.total = tooltip.match(/<span class="part-total">(.*?)<\/span>/)[1];
+			data.dice  = [];
+			
+			//get each roll value, including special data
+			for (const match of [...tooltip.matchAll(/<li class="(.*?)">(.*?)<\/li>/g)]) {
+				const classes = match[1].split(" ");
+
+				data.dice[data.dice.length] = { value: match[2] }
+				
+				//only include the first special value. If it's discarded AND max, we don't care, discarded first.
+				for (const special of ["discarded", "min", "max"]) {
+					if (classes.includes(special)) {
+						data.dice[data.dice.length - 1].special = special;
+						break;
+					}
+				}
+
+				//Add in the first size we find.
+				for (const size of ["d4", "d6", "d8", "d10", "d12", "d20"]) {
+					if (classes.includes(size)) {
+						//slice off the d, because our Message class is expecting it to just be a number.
+						data.dice[data.dice.length - 1].size = size.substring(1);
+						break;
+					}
+				}
+			}
+
+			//add in all numeric tooltips before we add in the next dice tooltip
+			while (order[order.length - 1].constructor.name == "NumericTerm") {
+				const term = order[order.length - 1];
+				const label = term.options.flavor;
+				console.log(label);
+				message.addDieTooltip(label.match(/{(.*?)}/)?.[1] ?? "", label.replace(/{.*?}/, ""), term.number);
+				order.pop();
+			}
+
+			message.addDieTooltip(data.formula, data.flavor, data.total, ...data.dice);
+			order.pop();
+		}
+		
+		message.send({ type: CONST.CHAT_MESSAGE_TYPES.ROLL, roll: real_roll });
+	}
+
+	//make a roll using the formula, then turn into into a message
+	//then get the html from that message (not everything needs to be
+	//async foundry)
+	new Roll(formula).roll({async: true}).then(r =>  {
+		r.toMessage(null, {create: false}).then(e => {
+			new ChatMessage(e).getHTML().then(e =>   {
+				buildRoll(r, e[0].outerHTML);
+			})
+		})
+	})
+}
+
 //Helper for the helper. Plays a sound with intelligent defaults
 utils.playSound  = (src, volume = 0.8, autoplay = true, loop = false, send = false) => {
 	if (!src) {

@@ -443,7 +443,6 @@ utils.getPronouns = character => {
 		   																											 ["they", "them", "themselves", "theirs", "their"];
 }
 
-
 function changeQuantity(item, amount, type) {
 	if (typeof item == "string") {
 		const i = utils.getItemByName(item);
@@ -480,6 +479,7 @@ function changeQuantity(item, amount, type) {
 
 	item.update({ "data.quantity": total });
 }
+
 //increase the quantity of an item.
 utils.increaseItemQuantity = (item, amount) => {
 	changeQuantity(item, amount, "increase");

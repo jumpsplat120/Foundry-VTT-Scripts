@@ -1,34 +1,38 @@
-//monkeypatch that returns 'Title Cased' text.
-String.prototype.toTitleCase = function() {
-    let upper = true;
-    let str   = "";
-    
-	for (let i = 0, l = this.length; i < l; i++) {
-		const chr = this[i];
-        if (chr == " ") {
-            upper = true;
-            str  += chr;
-        } else {
-			str  += upper ? chr.toUpperCase() : chr.toLowerCase();
-			upper = false;
+if (!utils) {
+	//monkeypatch that returns 'Title Cased' text.
+	String.prototype.toTitleCase = function() {
+		let upper = true;
+		let str   = "";
+		
+		for (let i = 0, l = this.length; i < l; i++) {
+			const chr = this[i];
+			if (chr == " ") {
+				upper = true;
+				str  += chr;
+			} else {
+				str  += upper ? chr.toUpperCase() : chr.toLowerCase();
+				upper = false;
+			}
 		}
-    }
 
-    return str;
-}
+		return str;
+	}
 
-//monkeypatch that allows you to .length Objects to see if they have any key value pairs.
-//only inlcudes keys visible using Object.keys
-Object.defineProperty(Object.prototype, "length", {
-	get() { return Object.keys(this).length; },
-	set() { },
-	enumerable: false,
-	writeable: false
-});
+	//monkeypatch that allows you to .length Objects to see if they have any key value pairs.
+	//only inlcudes keys visible using Object.keys
+	Object.defineProperty(Object.prototype, "length", {
+		get() { return Object.keys(this).length; },
+		set() { },
+		enumerable: false,
+		writeable: false
+	});
 
-//monkeypatch that will randomly return a value from an array
-Array.prototype.random = function() {
-	return this[Math.floor(Math.random() * this.length)];
+	//monkeypatch that will randomly return a value from an array
+	Array.prototype.random = function() {
+		return this[Math.floor(Math.random() * this.length)];
+	}
+} else {
+	delete window.utils;
 }
 
 //flavor goes above content, but below the senders name. Usually used as a title, if the header isn't being used.

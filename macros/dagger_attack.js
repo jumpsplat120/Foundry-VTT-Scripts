@@ -3,26 +3,23 @@ if (!utils) {
 	return;
 }
 
-const dagger    = utils.getItemByName("dagger").data;
-const char      = game.user.character;
-const abilities = char.data.data.abilities;
-let formula  = "1d20 + ";
+const dagger    = utils.getItemByName("dagger");
+const data      = dagger.data.data;
+const abilities = game.user.character.data.data.abilities;
+const dex       = abilities.dex.mod;
+const str       = abilities.str.mod;
+const finess    = dex >= str;
+const advantage = utils.checkAdvantage();
 
-if (abilities.dex.mod >= abilities.str.mod) { 
-	formula += abilities.dex.mod.toString() + "[dex (Finesse)]{Ability Modifier}";
-} else {
-	formula += abilities.str.mod.toString() + "[str]{Ability Modifier}";
-}
-
-if (dagger.data.proficient) { formula += " + " + dagger.data.prof.term + "[Simple Weapons]{Proficency}"; }
-
-utils.roll(formula).then(roll => {
-	roll.setHeaderImage(dagger.img)
-		.setHeaderContent("Dagger")
-		.setFlavor("Attack Roll")
-		.setCardContent(dagger.data.description.chat)
-		.send();
-})
+new utils.Roll(dagger)
+	.maybeAdd(advantage == 1, "2d20kh")
+	.maybeAdd(advantage == -1, "2d20kl")
+	.maybeAdd(advantage == 0, "1d20")
+	.maybeAdd(finess, dex, "Dexterity (Finess)", "Ability Modifier")
+	.maybeAdd(!finess, str, "Strength", "Ability Modifier")
+	.maybeAdd(data.proficient, data.prof.term, "Simple Weapons", "Proficency")
+	.run()
+	.then(message => message.setFlavor(`Attack Roll${advantage == 1 ? " (Advantage)" : (advantage == -1 ? " (Disadvantage)" : "")}`).send())
 //const addDamageEntry = roll => { t.damage.dagger = [roll.result.split(" ")[0] == 20, null, false]; } 
 //
 //const rollAttackAndPlaySound = (advantage, disadvantage, flavor) => {

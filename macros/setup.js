@@ -566,7 +566,14 @@ utils.Message = Message;
 
 //Roll class for building a better roll.
 utils.Roll = CustomRoll;
+
+utils.checkAdvantage = _ => undefined;
+//Helper function that wraps Dialog.prompt. Uses intelligent defaults
+utils.prompt = () => {
+
 }
+
+//Creates a damage entry, which is saved in tracking, and can be used to roll for damage.
 
 //Helper for the helper. Plays a sound with intelligent defaults
 utils.playSound  = (src, volume = 0.8, autoplay = true, loop = false, send = false) => {

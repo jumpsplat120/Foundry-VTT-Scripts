@@ -345,58 +345,129 @@ class Message {
 	}
 }
 
-window.utils = {};
-
-//Message class for building a message.
-utils.Message = Message;
-
-//Takes a formula, and turns it into a better message. Labels such as 5[fire] are removed from
+//Takes a formula that can be built in parts, and when ran, will return a promise with a Message
+//that will have a better formatting than a standard roll. Labels such as 5[fire] are removed from
 //the initial formula, but still appear in the drop down. Also, non dice show up in the drop
-//down along with a label. Sounds still play. There's also a new title, using {brackets}. This is
-//for the "title" of that part of the roll. So a use case would be 1d6[fire] + 1d4[holy]{Magic Enchantment}.
+//down along with a label. There's also a new title, using {brackets}. This is for the "title" of that
+//part of the roll. So a use case would be 1d6[fire] + 1d4[holy]{Magic Enchantment}.
 //That way, not only do you get the damage types, but you can also say where the source is coming from.
 //The "title" is actually just the formula part, but you don't need to write 2d6 and then also show 2 d6s,
 //so instead that space can be used for something more informational.
-utils.roll = (formula) => {
-	//hide titles in the labels so it's parsed by foundry's roll class
-	//first, we wrap any squiggly brackets in square brackets
-	//then, any back to back (][) square brackets should be removed
-	formula = formula.replace(/({.*?})/g, "[$1]").replace(/\]\[/g, "");
+class CustomRoll {
+	#item;
+	#formula = "";
+
+	constructor(item) {
+		if (typeof item == "string") {
+			const str = item;
+
+			item = utils.getItemByName(item);
+
+			if (!item) {
+				ui.notifications.error(`'${str}' is not a valid item for '${game.user.character.name}'.`);
+				return;
+			}
+		}
+
+		if (!item) {
+			ui.notifications.error(`Failed to pass an item or item name to the utils.Roll class.`);
+			return;
+		}
+
+		if (!(item instanceof Item)) {
+			ui.notifications.error(`'${item}' is not a valid Item.`);
+			return;
+		}
+
+		this.#item = item;
+	}
+
+	#operation(op, term, label, title) {
+		if (this.#formula.length > 0) { this.#formula += ` ${op} `; }
+
+		this.#formula += `${term.toString()}${label ? `[${label}]` : ""}${title ? `{${title}}` : ""}`
+
+		return this;
+	}
+
+	//adds a term, with an optional label and title. The first term, regardless of 
+	//operation, won't have an operator precede it.
+	add(term, label, title) { return this.#operation("+", term, label, title); }
+
+	subtract(term, label, title) { return this.#operation("-", term, label, title); }
+
+	divide(term, label, title) { return this.#operation("/", term, label, title); }
+
+	multiply(term, label, title) { return this.#operation("*", term, label, title); }
+
+	//opens/closes a paranthesis
+	open() { this.#formula += "("; }
+
+	close() { this.#formula += ")"; }
+
+	//takes a conditional, and only adds/subtracts/divides/multiplies the term
+	//if the conditional is true. This avoids having to build terms by breaking the roll
+	//up into pieces; you can just use these maybes and chain them together. Really
+	//complicated formulas might stil need things broken up but this should help with the
+	//simple cases.
+	maybeAdd(if_true, term, label, title) {
+		if (if_true) { this.add(term, label, title); }
+		
+		return this;
+	}
+
+	maybeSubtract(if_true, term, label, title) {
+		if (if_true) { this.subtract(term, label, title); }
+		
+		return this;
+	}
+
+	maybeDivide(if_true, term, label, title) {
+		if (if_true) { this.divide(term, label, title); }
+		
+		return this;
+	}
+
+	maybeMultiply(if_true, term, label, title) {
+		if (if_true) { this.multiply(term, label, title); }
+		
+		return this;
+	}
+
+	//function for recursive searching of terms
+	#iterate(roll, arr = []) {
+		for (const term of roll.terms) {
+			//if it's a parenthetical term, make a new roll out of it, and get the order of stuff we care about.
+			const name    = term.constructor.name;
+			const formula = term.formula;
+
+			if (name == "ParentheticalTerm") { arr = iterate(new Roll(term.term), arr); }
+
+			//add term to result array if the constructor is 'Die'
+			if (name == "Die") { arr[arr.length] = term; }
+			//but only add a numeric term if it's labeled. If there's no label then there's no point in adding it
+			//since we are really only adding it below for labeling purposes
+			if (name == "NumericTerm" && (formula.includes("{") || formula.includes("["))) { arr[arr.length] = term; }
+		}
+
+		//flatten the array because the parathneticals will have it wonky
+		return arr;
+	}
 
 	//The function to use once we get the html from the nested promises.
-	function buildRoll(real_roll, html) {
-		const roll    = new Roll(formula);
+	#buildRoll(real_roll, html) {
+		const roll    = new Roll(this.#formula);
 		const message = new utils.Message();
-
+		
 		//remove labels and only display math
-		message.addDieFormula(formula.replace(/\[.*?\]/g, "").replace(/\{.*?\}/g, ""));
+		message.addDieFormula(this.#formula.replace(/\[.*?\]/g, "").replace(/\{.*?\}/g, ""));
 
 		//find the die total from the html, and use that
 		message.addDieTotal(html.match(/<h4 class="dice-total">(\d+)<\/h4>/)[1]);
-
-		//function for recursive searching of terms
-		function iterate(roll, arr = []) {
-			for (const term of roll.terms) {
-				//if it's a parenthetical term, make a new roll out of it, and get the order of stuff we care about.
-				const name    = term.constructor.name;
-				const formula = term.formula;
-
-				if (name == "ParentheticalTerm") { arr = iterate(new Roll(term.term), arr); }
-
-				//add term to result array if the constructor is 'Die'
-				if (name == "Die") { arr[arr.length] = term; }
-				//but only add a numeric term if it's labeled. If there's no label then there's no point in adding it
-				//since we are really only adding it below for labeling purposes
-				if (name == "NumericTerm" && (formula.includes("{") || formula.includes("["))) { arr[arr.length] = term; }
-			}
-
-			//flatten the array because the parathneticals will have it wonky
-			return arr;
-		}
 		
 		//using the formula, create a roll, but don't parse it, and look at all the terms to determine
 		//order of tooltips. Reversing it so we can just pop the values off.
-		const order = iterate(roll);
+		const order = this.#iterate(roll);
 		
 		//get all of the pieces of already rolled die results, matcher is different to include newlines and spacing
 		//add the tooltips to the new roll instance, adding in numeric values when appropriate
@@ -463,16 +534,38 @@ utils.roll = (formula) => {
 		return message;
 	}
 
-	//make a roll using the formula, then turn into into a message
-	//then get the html from that message (not everything needs to be
-	//async foundry)
-	return new Roll(formula).roll({async: true}).then(r => {
-		return r.toMessage(null, {create: false}).then(e => {
-			return new ChatMessage(e).getHTML().then(e => {
-				return buildRoll(r, e[0].outerHTML);
-			})
-		})
-	})
+	//rolls the formula, and returns the result as a chat message.
+	run() {
+		if (this.#formula.length == 0) {
+			ui.notifications.warn("Tried to roll an empty formula.");
+			return;
+		}
+
+		//hide titles in the labels so it's parsed by foundry's roll class
+		//first, we wrap any squiggly brackets in square brackets
+		//then, any back to back (][) square brackets should be removed
+		this.#formula = this.#formula.replace(/({.*?})/g, "[$1]").replace(/\]\[/g, "");
+
+		//make a roll using the formula, then turn into into a message
+		//then get the html from that message (not everything needs to be
+		//async foundry)
+		return new Roll(this.#formula).roll({async: true})
+		.then(roll => roll.toMessage(null, {create: false})
+				.then(data => new ChatMessage(data).getHTML())
+				.then(html => this.#buildRoll(roll, html[0].outerHTML))
+				.then(msg  => msg.setHeaderImage(this.#item.data.img)
+								.setHeaderContent(this.#item.data.name)
+								.setCardContent(this.#item.data.data.description.chat)))
+	}
+}
+
+window.utils = {};
+
+//Message class for building a message.
+utils.Message = Message;
+
+//Roll class for building a better roll.
+utils.Roll = CustomRoll;
 }
 
 //Helper for the helper. Plays a sound with intelligent defaults

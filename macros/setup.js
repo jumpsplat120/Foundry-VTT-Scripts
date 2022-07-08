@@ -665,6 +665,27 @@ utils.prompt = () => {
 
 }
 
+//vaidates if a string is a valid Font Awesome Icon
+utils.validateFA = icon => {
+	//look through styles sheets
+	for (const sheet of [...document.styleSheets]) {
+		//when we find the fontawesome one...
+		if (sheet?.href?.includes?.("fontawesome")) {
+			//look at all the rules...
+			for (const rule of [...sheet.cssRules]) {
+				//if it's a stylerule, and if the selectorText matches the attempted icon...
+				if (rule.constructor.name == "CSSStyleRule" && rule.selectorText.match(`fa-${icon}::before`)) {
+					return true;
+				}
+			}
+			//once we found the fa sheet, we don't need to keep looking.
+			break;
+		}
+	}
+
+	return false;
+}
+
 //Creates a damage entry, which is saved in tracking, and can be used to roll for damage.
 
 //Helper for the helper. Plays a sound with intelligent defaults

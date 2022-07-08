@@ -1073,9 +1073,14 @@ utils.playSound = (src, volume = 0.8, autoplay = true, loop = false, send = fals
 		return;
  	}
 
-	const sound = AudioHelper.play({ src, volume, autoplay, loop }, send);
-
-	return sound.schedule(_ => sound, sound.duration);
+	return AudioHelper.play({ src, volume, autoplay, loop }, send)
+		.then(sound => {
+			//some sounds are so short, that by the time we get the sound instance
+			//they're already done playing. If they're playing, we schedule, but if
+			//not, just return the sound directly.
+			if (sound.isPlaying) { return sound.schedule(_ => sound, sound.duration); }
+			return sound;
+		});
 }
 
 //Returns true if a key is being pressed.

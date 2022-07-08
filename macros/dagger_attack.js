@@ -9,7 +9,6 @@ const abilities = game.user.character.data.data.abilities;
 const dex       = abilities.dex.mod;
 const str       = abilities.str.mod;
 const finess    = dex >= str;
-const advantage = utils.checkAdvantage();
 
 new utils.Roll(dagger)
 	.maybeAdd(advantage == 1, "2d20kh")

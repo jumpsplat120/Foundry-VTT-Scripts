@@ -1201,7 +1201,7 @@ utils.tracking.damage    = {};
 utils.sounds = {};
 
 utils.sounds.bruh = ["https://www.jumpsplat120.com/assets/sfx/misc/bruh.mp3"];
-utils.sounds.bruh = ["https://www.jumpsplat120.com/assets/sfx/misc/bugs.mp3"];
+utils.sounds.bugs = ["https://www.jumpsplat120.com/assets/sfx/misc/bugs.mp3"];
 
 utils.sounds.bow_draw = [
 	"https://www.jumpsplat120.com/assets/sfx/bow/draw/1.mp3",

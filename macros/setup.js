@@ -83,7 +83,7 @@ class Message {
 		   .addDieTooltip("Formula B", "Flavor", "Total", { size: 1, value: "X", special: "unused" }, { size: 10, value: "10" })
 		   .addFooter("Footer A")
 		   .addFooter("Footer B")
-		   .send()
+		   .show()
 	}
 
 	constructor(content) {
@@ -331,7 +331,7 @@ class Message {
 		return res;
 	}
 
-	send(data) {
+	show(data) {
 		data = data ?? this.data ?? {};
 		data.content = `${this.#content_html()}
 			<div class="dnd5e chat-card item-card">
@@ -546,7 +546,7 @@ class CustomRoll {
 	}
 
 	//rolls the formula, and returns the result as a chat message.
-	run() {
+	roll() {
 		if (this.#formula.length == 0) {
 			ui.notifications.warn("Tried to roll an empty formula.");
 			return;

@@ -474,7 +474,7 @@ class CustomRoll {
 		message.addDieFormula(this.#formula.replace(/\[.*?\]/g, "").replace(/\{.*?\}/g, ""));
 
 		//find the die total from the html, and use that
-		message.addDieTotal(html.match(/<h4 class="dice-total">(\d+)<\/h4>/)[1]);
+		message.addDieTotal(html.match(/<h4 class="dice-total (.*?)">(\d+)<\/h4>/)[2]);
 		
 		//using the formula, create a roll, but don't parse it, and look at all the terms to determine
 		//order of tooltips. Reversing it so we can just pop the values off.

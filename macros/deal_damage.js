@@ -1,4 +1,3 @@
-const saved   = game.saved_macro;
 const utils   = saved.utils;
 const track   = saved.tracking;
 const damages = track.damage;

@@ -1204,11 +1204,11 @@ utils.sounds.bow_draw = [
 ]
 
 utils.sounds.dagger_swing = [
-	"https://www.jumpsplat120.com/assets/sfx/dagger/swing/1.mp3",
-	"https://www.jumpsplat120.com/assets/sfx/dagger/swing/2.mp3",
-	"https://www.jumpsplat120.com/assets/sfx/dagger/swing/3.mp3",
-	"https://www.jumpsplat120.com/assets/sfx/dagger/swing/4.mp3",
-	"https://www.jumpsplat120.com/assets/sfx/dagger/swing/5.mp3"
+	"https://www.jumpsplat120.com/assets/sfx/dagger/swing/1.wav",
+	"https://www.jumpsplat120.com/assets/sfx/dagger/swing/2.wav",
+	"https://www.jumpsplat120.com/assets/sfx/dagger/swing/3.wav",
+	"https://www.jumpsplat120.com/assets/sfx/dagger/swing/4.wav",
+	"https://www.jumpsplat120.com/assets/sfx/dagger/swing/5.wav"
 ]
 
 //tracks if a key is currently being pressed down or not.

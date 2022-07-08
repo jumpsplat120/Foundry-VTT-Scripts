@@ -1203,6 +1203,14 @@ utils.sounds.bow_draw = [
 	"https://www.jumpsplat120.com/assets/sfx/bow/draw/6.mp3"
 ]
 
+utils.sounds.dagger_swing = [
+	"https://www.jumpsplat120.com/assets/sfx/dagger/swing/1.mp3",
+	"https://www.jumpsplat120.com/assets/sfx/dagger/swing/2.mp3",
+	"https://www.jumpsplat120.com/assets/sfx/dagger/swing/3.mp3",
+	"https://www.jumpsplat120.com/assets/sfx/dagger/swing/4.mp3",
+	"https://www.jumpsplat120.com/assets/sfx/dagger/swing/5.mp3"
+]
+
 //tracks if a key is currently being pressed down or not.
 document.addEventListener("keydown", event => { utils.tracking.keys[event.key.toLowerCase()] = true;  });
 document.addEventListener("keyup",  event =>  { utils.tracking.keys[event.key.toLowerCase()] = false; });

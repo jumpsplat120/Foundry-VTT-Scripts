@@ -1065,16 +1065,17 @@ utils.validateFA = icon => {
 	return false;
 }
 
-//Creates a damage entry, which is saved in tracking, and can be used to roll for damage.
-
-//Helper for the helper. Plays a sound with intelligent defaults
-utils.playSound  = (src, volume = 0.8, autoplay = true, loop = false, send = false) => {
+//Helper for the helper. Plays a sound with intelligent defaults, and returns a promise
+//that fires when the sound is done playing. returns the sound object that was playing.
+utils.playSound = (src, volume = 0.8, autoplay = true, loop = false, send = false) => {
 	if (!src) {
 		ui.notifications.warn("No sound was given to playSound.");
 		return;
  	}
 
-	AudioHelper.play({ src, volume, autoplay, loop }, send);
+	const sound = AudioHelper.play({ src, volume, autoplay, loop }, send);
+
+	return sound.schedule(_ => return sound, sound.duration);
 }
 
 //Returns true if a key is being pressed.

@@ -1202,6 +1202,8 @@ utils.sounds.bow_draw = [
 	"https://www.jumpsplat120.com/assets/sfx/bow/draw/6.mp3"
 ]
 
-//tracks if a key is currently being pressed or not.
+//tracks if a key is currently being pressed down or not.
 document.addEventListener("keydown", event => { utils.tracking.keys[event.key.toLowerCase()] = true;  });
 document.addEventListener("keyup",  event =>  { utils.tracking.keys[event.key.toLowerCase()] = false; });
+
+console.log("Macros | Setup has finished.");

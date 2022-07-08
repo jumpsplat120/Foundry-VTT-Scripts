@@ -10,65 +10,23 @@ const dex       = abilities.dex.mod;
 const str       = abilities.str.mod;
 const finess    = dex >= str;
 
-new utils.Roll(dagger)
-	.maybeAdd(advantage == 1, "2d20kh")
-	.maybeAdd(advantage == -1, "2d20kl")
-	.maybeAdd(advantage == 0, "1d20")
-	.maybeAdd(finess, dex, "Dexterity (Finess)", "Ability Modifier")
-	.maybeAdd(!finess, str, "Strength", "Ability Modifier")
-	.maybeAdd(data.proficient, data.prof.term, "Simple Weapons", "Proficency")
-	.run()
-	.then(message => message.setFlavor(`Attack Roll${advantage == 1 ? " (Advantage)" : (advantage == -1 ? " (Disadvantage)" : "")}`).send())
-//const addDamageEntry = roll => { t.damage.dagger = [roll.result.split(" ")[0] == 20, null, false]; } 
-//
-//const rollAttackAndPlaySound = (advantage, disadvantage, flavor) => {
-//    const roll_options = { fastForward: true };
-//
-//    if (advantage)    { roll_options.advantage    = advantage;    }
-//    if (disadvantage) { roll_options.disadvantage = disadvantage; }
-//    if (flavor)       { roll_options.flavor       = flavor;       }
-//
-//    dagger.rollAttack(roll_options).then(addDamageEntry);
-//	utils.playSound(utils.sounds.dagger_swing?.random?.());
-//}
-//
-//const advantageDialog = _ => { new Dialog({
-//		title: "Advantage",
-//		content: "You have sources of advantage! Would you like to use one?",
-//		buttons: {
-//			yes: {
-//				icon: '<i class="fas fa-check"></i>',
-//				label: "Yes",
-//				callback: event => {
-//					const buttons = {}
-//					t.advantage.forEach((advantage, i) => {
-//						buttons[u.simpleName(advantage[0])] = {
-//							icon: `<i class="fas fa-${advantage[2]}"></i>`,
-//							label: advantage[0],
-//							callback: _ => {
-//								advantage[3]();
-//								rollAttackAndPlaySound(true, null, `Dagger w/ ${advantage[0]} - Attack Roll`);
-//                                advantage[1]--;
-//								if (advantage[1] == 0) { t.advantage.splice(i, 1); }
-//							}
-//						}
-//					})
-//					new Dialog({
-//						title: "Advantage Sources",
-//						content: "Please choose a source of advantage.",
-//						buttons: buttons
-//					}).render(true);
-//				}
-//			},
-//			no: {
-//				icon: '<i class="fas fa-times"></i>',
-//				label: "No",
-//				callback: event => { rollAttackAndPlaySound(); }
-//			}
-//		}
-//	}).render(true);
-//}
-//
+utils.Advantage.check()
+	.then(sources => {
+		if (sources === null) { return null; }
+		
+		const data = utils.Advantage.pool(sources);
+
+		//play sound, then roll
+		return utils.playSound(utils.sounds?.dagger_swing?.random).then(_ => new utils.Roll(dagger)
+			.add(data.formula, data.label, "Base")
+			.maybeAdd(finess, dex, "Dexterity (Finess)", "Ability Modifier")
+			.maybeAdd(!finess, str, "Strength", "Ability Modifier")
+			.maybeAdd(item_data.proficient, item_data.prof.term, "Simple Weapons", "Proficency")
+			.roll())
+	})
+	.then(message => message == null ? null : message.setFlavor("Attack Roll").show());
+
+
 //const lucky_dialog = u.luckyPrompt(event => {
 //    rollAttackAndPlaySound(null, null, "Dagger w/ Lucky (Reroll) - Attack Roll");
 //	t.lucky = false;

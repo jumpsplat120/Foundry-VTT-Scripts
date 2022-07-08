@@ -852,7 +852,8 @@ utils.tracking = {};
 
 utils.tracking.arrows = 0;
 utils.tracking.keys   = {};
-utils.tracking.advantage = [];
+utils.tracking.advantage    = [];
+utils.tracking.disadvantage = [];
 utils.tracking.damage    = {};
 
 utils.sounds = {};

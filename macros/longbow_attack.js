@@ -40,7 +40,7 @@ const advantage_dialog = new Dialog({
 			no: {
 				icon: '<i class="fas fa-times"></i>',
 				label: "No",
-				callback: event =>  {
+				callback: event => {
 					bow.rollAttack({fastForward: true }).then(roll => { t.damage.longbow = [roll.result.split(" ")[0] == 20, null, false] });
 					u.updateItemQuantity("arrows", 1, "-");
 					t.arrows++;

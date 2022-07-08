@@ -1075,7 +1075,7 @@ utils.playSound = (src, volume = 0.8, autoplay = true, loop = false, send = fals
 
 	const sound = AudioHelper.play({ src, volume, autoplay, loop }, send);
 
-	return sound.schedule(_ => return sound, sound.duration);
+	return sound.schedule(_ => sound, sound.duration);
 }
 
 //Returns true if a key is being pressed.

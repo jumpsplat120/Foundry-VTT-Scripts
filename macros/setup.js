@@ -1031,6 +1031,15 @@ utils.Message = Message;
 utils.Roll = CustomRoll;
 
 utils.checkAdvantage = _ => undefined;
+//Advantage class for checking and working with advantage.
+utils.Advantage = Advantage;
+
+//Button class for creating Dialog Buttons.
+utils.Button = DialogButton;
+
+//Dialog class for creating better dialogs.
+utils.Dialog = CustomDialog;
+
 //Helper function that wraps Dialog.prompt. Uses intelligent defaults
 utils.prompt = () => {
 

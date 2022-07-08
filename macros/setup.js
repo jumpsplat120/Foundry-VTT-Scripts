@@ -570,6 +570,87 @@ class CustomRoll {
 	}
 }
 
+//Creates a dialog button, for use in the custom dialog class.
+class DialogButton {
+	#key;
+	#icon;
+	#text;
+	#callback;
+
+	//Buttons have keys as a way to reference them within the dialog.
+	//You can make a button with a custom keys, or let it be auto generated.
+	//It's expected that you'd create one initially, but you can use the
+	//setter to do it as well. It doesn't have a helper method, however.
+	constructor(key) {
+		this.#key = key?.toString?.() ?? utils.guid();
+	}
+
+	set key(x) { this.#key = key.toString(); }
+
+	set icon(x) { this.setIcon(x); }
+
+	set text(x) { this.setText(x); }
+
+	set label(x) { this.setText(x); }
+
+	set callback(x) { this.setCallback(x); }
+
+	get key() { return this.#key; }
+
+	get icon() { return this.#icon; }
+
+	get text() { return this.#text; }
+
+	get label() { return this.#text; }
+
+	get callback() { return this.#callback; }
+
+	setIcon(icon) {
+		icon = icon.toString();
+
+		if (utils.validateFA(icon)) {
+			this.#icon = icon;
+		} else {
+			console.warn(`'${icon}' is not a valid font awesome icon. Setting to checkmark default.`);
+
+			this.#icon = "check";
+		}
+
+		return this;
+	}
+
+	setText(text) {
+		this.#text = text.toString();
+
+		return this;
+	}
+
+	setLabel(label) {
+		return this.setText(label);
+	}
+
+	setCallback(callback) {
+		if (typeof callback != "function") {
+			ui.notifications.error("Failed to build button as passed callback was not a function.");
+			return;
+		}
+
+		this.#callback = callback;
+
+		return this;
+	}
+
+	//returns the object used in the vanilla foundry Dialog class.
+	get object() {
+		return {
+			icon: `<i class="fas fa-${this.#icon ?? "check"}"></i>`,
+			label: this.#text ?? "",
+			callback: this.#callback ?? function() {}
+		};
+	}
+
+	set object(x) { console.warn("Can not set object of button directly."); }
+}
 window.utils = {};
 
 //Message class for building a message.

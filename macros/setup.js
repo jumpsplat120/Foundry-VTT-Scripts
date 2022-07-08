@@ -28,9 +28,12 @@ if (!window.utils) {
 	});
 
 	//monkeypatch that will randomly return a value from an array
-	Array.prototype.random = function() {
-		return this[Math.floor(Math.random() * this.length)];
-	}
+	Object.defineProperty(Array.prototype, "random", {
+		get() { return this[Math.floor(Math.random() * this.length)]; },
+		set() { },
+		enumerable: false,
+		writeable: false
+	})
 } else {
 	delete window.utils;
 }

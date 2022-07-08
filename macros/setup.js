@@ -651,6 +651,125 @@ class DialogButton {
 
 	set object(x) { console.warn("Can not set object of button directly."); }
 }
+
+//Creates a dialog more seamlessly. After building a dialog, showing it returns a promise, that runs once
+//and option has been picked, including closing the dialog box. Callbacks are run, and the value of the
+//callback is returned in the promise.
+class CustomDialog {
+	#title;
+	#buttons = {};
+	#content;
+	#default;
+	#close;
+	#promises = [];
+
+	//Dialogs don't need a title and content, but they can be defined initially, or defined in
+	//one of the chaining functions
+	constructor(title = "", content = "") {
+		this.#title = title.toString();
+		this.#content = content.toString();
+	}
+
+	//since this is directly referencing the object, this allows you to
+	//modify a button directly, without having to pull it out, change it,
+	//and put it back in.
+	get buttons() { return this.#buttons; }
+
+	get title() { return this.#title; }
+
+	get content() { return this.#content; }
+
+	set buttons(x) { console.warn("You can not set a buttons object directly. Use the add/removeButton methods."); }
+	
+	set title(x) { this.setTitle(x); }
+
+	set content(x) { this.setContent(x); }
+
+	setTitle(title) {
+		this.#title = title.toString();
+
+		return this;
+	}
+
+	setContent(content) {
+		this.#content = content.toString();
+
+		return this;
+	}
+
+	//Takes a Button instance, which is a util Class that contains all the relevant button things.
+	//takes an optional value that determines whether or not that button is considered the "default"
+	//option. The first button will always be considered default if one is not specified.
+	addButton(button, is_default) {
+		if (!(button instanceof utils.Button)) {
+			ui.notifications.error(`Failed to add '${button.toString()}' to Dialog as it's not a Button instance.`);
+			return;
+		}
+
+		this.#buttons[button.key] = button;
+
+		if (is_default || this.#buttons.length == 1) { this.#default = button.text; }
+
+		return this;
+	}
+
+	//Removes a button by label.
+	removeButton(label) {
+		if (this.#buttons[label] === undefined) {
+			console.warn(`No button labeled '${label}' was found in Dialog buttons.`);
+		} else {
+			delete this.#buttons[label];
+		}
+
+		return this;
+	}
+
+	//The callback that runs when the dialog is closed.
+	onClose(callback) {
+		if (typeof callback != "function") {
+			ui.notifications.warn("Failed to build dialog as passed 'close' callback was not a function.");
+			return;
+		}
+
+		this.#close = callback;
+
+		return this;
+	}
+
+	//shows the dialog, and returns a promise, which resolves when the dialog is closed, whether by
+	//selecting a button, or simply x'ing it out. default is a keyword, so we use square bracket
+	//notation to avoid errors.
+	async show() {
+		return new Promise((resolve) => {
+			const data = {
+				title: this.#title,
+				content: this.#content,
+				["default"]: this.#default,
+				buttons: {}
+			};
+	
+			for (const [key, button] of Object.entries(this.#buttons)) {
+				const obj = button.object;
+				const f   = obj.callback;
+
+				//promisifies the original callback
+				obj.callback = function() { resolve(f()); };
+	
+				data.buttons[key] = obj;
+			}
+			
+			if (this.#close) {
+				//scopes the close function, otherwise it can't be accessed.
+				const f = this.#close;
+				
+				data.close = function() { resolve(f()); };
+			}
+
+			new Dialog(data).render(true);
+		})
+	}
+}
+
 window.utils = {};
 
 //Message class for building a message.

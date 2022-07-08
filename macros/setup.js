@@ -34,6 +34,14 @@ if (!window.utils) {
 		enumerable: false,
 		writeable: false
 	})
+
+	//monkeypatch that will randomly return a value from an object
+	Object.defineProperty(Object.prototype, "random", {
+		get() { return this[Object.keys(this).random]; },
+		set() { },
+		enumerable: false,
+		writeable: false
+	})
 } else {
 	delete window.utils;
 }

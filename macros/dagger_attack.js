@@ -4,7 +4,7 @@ if (!utils) {
 }
 
 const dagger    = utils.getItemByName("dagger");
-const data      = dagger.data.data;
+const item_data = dagger.data.data;
 const abilities = game.user.character.data.data.abilities;
 const dex       = abilities.dex.mod;
 const str       = abilities.str.mod;

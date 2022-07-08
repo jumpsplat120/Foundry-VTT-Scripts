@@ -1091,14 +1091,6 @@ utils.luckyPrompt = (yes, no) => {
 	}).render(true);
 }
 
-
-//helper function that returns an object used for Dialogs
-utils.createButton = (label, fa_icon, callback) => {
-	return { icon: `<i class="fas fa-${fa_icon}"></i>`,
-			 label: label,
-			 callback: callback }
-}
-
 //gets an item from a character, or from the local character, by name. Takes
 //names like wooden_sword as well as Wooden Sword
 utils.getItemByName = (item_name, character) => {	

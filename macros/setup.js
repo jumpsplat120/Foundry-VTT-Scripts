@@ -1030,7 +1030,6 @@ utils.Message = Message;
 //Roll class for building a better roll.
 utils.Roll = CustomRoll;
 
-utils.checkAdvantage = _ => undefined;
 //Advantage class for checking and working with advantage.
 utils.Advantage = Advantage;
 

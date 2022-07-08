@@ -570,6 +570,258 @@ class CustomRoll {
 	}
 }
 
+//Contains the static Advantage.check method, which checks utils.tracking for sources of advantage and disadvantage, and
+//creates a dialog, and returns the result all in a promise. Also creates Advantage instances, which are
+//objects that contain their advantage state, source, fa icon, and a callback for determining when the advantage has expired.
+class Advantage {
+	#advantage;
+	#source;
+	#icon;
+	#expires;
+
+	//mutates an array, removing all advantage objects that are expired. ignores anything that
+	//isn't an instance of Advantage.
+	static expire(array) {
+		if (!Array.isArray(array)) { return; }
+
+		for (let i = 0; i < array.length; i++) {
+			if (array[i] instanceof utils.Advantage) {
+				if (array[i].expired()) { array.splice(i, 1); }
+			}
+		}
+
+		return array;
+	}
+
+	//Helper function that takes a pool of vantage sources, and returns an object with info
+	//based on all pooled sources.
+	static pool(array) {
+		if (array.length == 0) { return { state: 0, label: "", formula: "1d20" }; }
+
+		const result = { state: 0 };
+
+		//determine state based on all sources
+		for (const vantage of array) {
+			result.state += vantage.advantage ? 1 : -1;
+		}
+
+		//if there's only one, form title, otherwise sort so all advantages are first, then all disadvantages
+		if (array.length == 1) { 
+			result.label = `${array[0].advantage ? "Advantage" : "Disadvantage"} - ${array[0].source}`;
+		} else {
+			array.sort((a, b) => a.advantage && b.disadvantage ? -1 : (a.disadvantage && b.advantage ? 1 : 0));
+		}
+		
+		//title for only two entries
+		if (array.length == 2) {
+			result.label = `+ (${array[0].source}) / - (${array[1].source})`
+		}
+
+		//title for three entries, changes dependent on state
+		if (array.length == 3) {
+			if (result.state == 1) {
+				result.label = `+ (multiple) / - (${array[2].source})`
+			} else {
+				result.label = `+ (${array[0].source}) / - (multiple)`
+			}
+		}
+
+		//four and above is this
+		if (array.length >= 4) {
+			result.label = `+ (multiple) / - (multiple)`
+		}
+
+		result.formula = `${result.state == 1 ? "2d20kh" : (result.state == -1 ? "2d20kl" : "1d20")}`
+
+		return result;
+	}
+
+	//returns a promise, that either waits for a dialog to finish, and gives the an array of vantage sources (can be empty),
+	//or simply returns null if the dialog was closed without choosing anything.
+	static async check() {
+		const tracking = utils.tracking;
+		const sources  = [];
+
+		//expire all old vantages
+		utils.Advantage.expire(tracking.advantage);
+		utils.Advantage.expire(tracking.disadvantage);
+
+		//add all sources of disadvantage to the pool, and tick each one as being used.
+		for (const disadvantage of tracking.disadvantage) {
+			sources[sources.length] = disadvantage;
+			
+			if (!disadvantage.uses) { disadvantage.uses = 0; }
+			
+			disadvantage.uses++;
+		}
+
+		const yes = new utils.Button().setIcon("check").setText("Yes");
+		const no  = new utils.Button().setIcon("times").setText("No").setCallback(_ => sources);
+		const advantages    = tracking.advantage;
+		const disadvantages = tracking.disadvantage;
+
+		const title = "Advantage";
+		let content;
+		let bummer;
+
+		//if there's disadvantage...
+		if (sources.length > 0) {
+			//and you you have disadvantages + 1 amount of advantage sources...
+			if (advantages.length >= disadvantages.length) {
+				content = `You have ${disadvantages.length} sources of disadvantage on you, and you have ${advantages.length} sources of advantage. Would you like to activate `;
+				content += advantages.length > disadvantages.length ? `${disadvantages.length + 1} sources to give yourself advantage?` : `${disadvantages.length} sources to remove your disadvantage?`;
+
+				//callback that returns the function for the yes button. add is either 0 or 1 if we're running recursively to get
+				//+1 sources or the same amount of sources as the disadvantage.
+				function callback(add) {
+					return _ => {
+						function choose(another) {
+							const dialog = new utils.Dialog("Advantage Sources", `Choose a${another ? "nother" : ""} source of advantage.`);
+
+							for (const advantage of advantages) {
+								if (advantage.in_use) { continue; }
+								
+								dialog.addButton(new utils.Button()
+									.setIcon(advantage.icon)
+									.setText(advantage.source)
+									.setCallback(_ => advantage))
+							}
+
+							return dialog;
+						}
+
+						function handleChoice(chosen) {
+							sources[sources.length] = chosen;
+
+							if (!chosen.uses) { chosen.uses = 0; }
+
+							chosen.uses++;
+
+							chosen.in_use = true;
+
+							if (sources.length - disadvantages.length < disadvantages.length + add) {
+								return choose(true).show().then(handleChoice);
+							}
+
+							return sources;
+						}
+						
+						//recursively choose advantages until you've got enough to give you advantage.
+						return choose().show().then(handleChoice);
+					}
+				}
+				
+				yes.setCallback(callback(advantages.length > disadvantages.length ? 1 : 0));
+			//if you have advantage, but not enough to cancel out your disadvantage...
+			} else if (advantages.length > 0 && advantages.length < disadvantages.length) {
+				content = `You have ${disadvantages.length} sources of disadvantage on you, but only have ${advantages.length} sources of advantage. It would be a waste to use these sources as you'll still have disadvantage.`;
+				bummer  = new utils.Button().setIcon("frown").setText("Bummer").setCallback(_ => sources);
+			}
+		} else if (advantages.length > 0) {
+			content = "You have sources of advantage! Would you like to pick one?";
+
+			yes.setCallback(_ => {
+				const dialog = new utils.Dialog("Advantage Sources", "Choose a source of advantage.");
+
+				for (const advantage of advantages) {
+					dialog.addButton(new utils.Button()
+						.setIcon(advantage.icon)
+						.setText(advantage.source)
+						.setCallback(_ => {
+							if (!advantage.uses) { advantage.uses = 0; }
+
+							advantage.uses++;
+
+							return [advantage];
+						}))
+				}
+
+				return dialog.show();
+			})
+		}
+
+		if (!content) {
+			//you have no sources of advantage or disadvantage, or you only have disadvantage. In both cases,
+			//just return the sources array, which will either be empty for the first case, or contain the
+			//disadvantages in the second case.
+			return sources;
+		}
+
+		const dialog = new utils.Dialog(title, content);
+
+		if (bummer) {
+			dialog.addButton(bummer);
+		} else {
+			dialog.addButton(yes).addButton(no);
+		}
+
+		//takes the sources array, and untoggles the "in_use" flag that may have been created, so they can be used in successive rolls.
+		return dialog.onClose(_ => null).show().then(arr => {
+			if (arr === null) { return arr; }
+			
+			return arr.map(vantage => {
+				delete vantage.in_use;
+				return vantage;
+			});
+		});
+	}
+	
+	//set whether there is advantage, disadvantage, or neither, as well as source and optional icon.
+	//The last value is the expiration function. This callback is run to determine whether the source
+	//has expired or not. It's up to the user to determine when that should be checked. The Advantage
+	//class provides a static function called "expire", which you can pass in an object, and it will
+	//iterate over that object, removing all expired sources of advantage, and ignoring everything else.
+	constructor(advantage, source, icon = "check", expires) {
+		if (typeof advantage !== "boolean") {
+			ui.notifications.error("Advantage can only be true or false.");
+			return;
+		}
+
+		if (!source || typeof source !== "string") {
+			ui.notifications.error("Invalid source for advantage.");
+			return;
+		}
+
+		if (!expires || typeof expires !== "function") {
+			ui.notifications.error("Invalid expires function for advantage.");
+			return;
+		}
+
+		icon = icon.toString();
+
+		if (utils.validateFA(icon)) {
+			this.#icon = icon;
+		} else {
+			console.warn(`'${icon}' is not a valid font awesome icon. Setting to checkmark default.`);
+			icon = "check";
+		}
+
+		this.#advantage = advantage;
+		this.#source    = source;
+		this.#icon      = icon;
+		this.#expires   = expires;
+	}
+
+	//Runs the expires function. If this function returns a truthy value, then the Advantage instance should be removed.
+	expired() { return this.#expires(this); }
+
+	get source() { return this.#source; }
+	
+	get icon() { return this.#icon; }
+
+	get advantage() { return this.#advantage; }
+
+	get disadvantage() { return !this.#advantage; }
+
+	set source(x) { console.warn("Advantage source is immutable. Rather than change the source, make a new instance."); }
+	
+	set icon(x) { console.warn("Advantage icon is immutable. Rather than change the icon, make a new instance."); }
+
+	set advantage(x) { console.warn("Advantage state is immutable. Rather than change the state, make a new instance."); }
+
+	set disadvantage(x) { console.warn("Advantage state is immutable. Rather than change the state, make a new instance."); }
+}
+
 //Creates a dialog button, for use in the custom dialog class.
 class DialogButton {
 	#key;

@@ -1,4 +1,4 @@
-if (!utils) {
+if (!window.utils) {
 	//monkeypatch that returns 'Title Cased' text.
 	String.prototype.toTitleCase = function() {
 		let upper = true;

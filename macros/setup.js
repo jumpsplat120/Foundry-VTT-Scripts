@@ -160,10 +160,14 @@ class Message {
 		return this;
 	}
 
-	addDieTotal(text) {
+	//die totals can be red or green for fails and crits.
+	//optionally pass "crit" or "fail" to color the total.
+	addDieTotal(text, special) {
 		if (!this.#dice.total) { this.#dice.total = []; }
 
-		this.#dice.total[this.#dice.total.length] = text;
+		special = ({ crit: " critical", fail: " fumble" })?.[special] ?? "";
+
+		this.#dice.total[this.#dice.total.length] = { text, special };
 
 		return this;
 	}
@@ -322,7 +326,7 @@ class Message {
 			}
 
 			for (const total of this.#dice?.total ?? []) {
-				res += `<h4 class="dice-total">${total}</h4>`;
+				res += `<h4 class="dice-total${total.special}">${total.text}</h4>`;
 			}
 
 			res += `</div></div>`

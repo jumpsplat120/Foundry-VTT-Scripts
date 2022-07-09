@@ -653,121 +653,136 @@ class Advantage {
 		//add all sources of disadvantage to the pool, and tick each one as being used.
 		for (const disadvantage of tracking.disadvantage) {
 			sources[sources.length] = disadvantage;
-			
-			if (!disadvantage.uses) { disadvantage.uses = 0; }
-			
-			disadvantage.uses++;
 		}
 
-		const yes = new utils.Button().setIcon("check").setText("Yes");
-		const no  = new utils.Button().setIcon("times").setText("No").setCallback(_ => sources);
-		const advantages    = tracking.advantage;
-		const disadvantages = tracking.disadvantage;
-
-		const title = "Advantage";
+		const advantages       = tracking.advantage;
+		const disadvantages    = tracking.disadvantage;
+		const advantage_amt    = advantages.length;
+		const disadvantage_amt = disadvantages.length;
+		const has_disadvantage = disadvantage_amt > 0;
+		const dis_plural = disadvantage_amt == 1 ? "" : "s";
+		const ad_plural  = advantage_amt    == 1 ? "" : "s";
 		let content;
 		let bummer;
 
-		//if there's disadvantage...
-		if (sources.length > 0) {
-			//and you you have disadvantages + 1 amount of advantage sources...
-			if (advantages.length >= disadvantages.length) {
-				content = `You have ${disadvantages.length} sources of disadvantage on you, and you have ${advantages.length} sources of advantage. Would you like to activate `;
-				content += advantages.length > disadvantages.length ? `${disadvantages.length + 1} sources to give yourself advantage?` : `${disadvantages.length} sources to remove your disadvantage?`;
+		//recursively choose x amount of advantages from choices, and place them in result array
+		function callback(choices, amount, result) {
+			//account for the already existing values in the result array
+			amount += result.length;
 
-				//callback that returns the function for the yes button. add is either 0 or 1 if we're running recursively to get
-				//+1 sources or the same amount of sources as the disadvantage.
-				function callback(add) {
-					return _ => {
-						function choose(another) {
-							const dialog = new utils.Dialog("Advantage Sources", `Choose a${another ? "nother" : ""} source of advantage.`);
+			//creates and returns a dialog that shows choices from the choices array
+			function choose(another) {
+				const dialog = new utils.Dialog("Advantage Sources", `Choose a${another ? "nother" : ""} source of advantage.`);
 
-							for (const advantage of advantages) {
-								if (advantage.in_use) { continue; }
-								
-								dialog.addButton(new utils.Button()
-									.setIcon(advantage.icon)
-									.setText(advantage.source)
-									.setCallback(_ => advantage))
-							}
-
-							return dialog;
-						}
-
-						function handleChoice(chosen) {
-							sources[sources.length] = chosen;
-
-							if (!chosen.uses) { chosen.uses = 0; }
-
-							chosen.uses++;
-
-							chosen.in_use = true;
-
-							if (sources.length - disadvantages.length < disadvantages.length + add) {
-								return choose(true).show().then(handleChoice);
-							}
-
-							return sources;
-						}
-						
-						//recursively choose advantages until you've got enough to give you advantage.
-						return choose().show().then(handleChoice);
-					}
-				}
-				
-				yes.setCallback(callback(advantages.length > disadvantages.length ? 1 : 0));
-			//if you have advantage, but not enough to cancel out your disadvantage...
-			} else if (advantages.length > 0 && advantages.length < disadvantages.length) {
-				content = `You have ${disadvantages.length} sources of disadvantage on you, but only have ${advantages.length} sources of advantage. It would be a waste to use these sources as you'll still have disadvantage.`;
-				bummer  = new utils.Button().setIcon("frown").setText("Bummer").setCallback(_ => sources);
-			}
-		} else if (advantages.length > 0) {
-			content = "You have sources of advantage! Would you like to pick one?";
-
-			yes.setCallback(_ => {
-				const dialog = new utils.Dialog("Advantage Sources", "Choose a source of advantage.");
-
-				for (const advantage of advantages) {
+				for (const choice of choices) {
+					if (choice.in_use) { continue; }
+					
 					dialog.addButton(new utils.Button()
-						.setIcon(advantage.icon)
-						.setText(advantage.source)
-						.setCallback(_ => {
-							if (!advantage.uses) { advantage.uses = 0; }
-
-							advantage.uses++;
-
-							return [advantage];
-						}))
+						.setIcon(choice.icon)
+						.setText(choice.source)
+						.setCallback(_ => choice))
 				}
 
-				return dialog.show();
-			})
-		}
+				return dialog;
+			}
 
-		if (!content) {
-			//you have no sources of advantage or disadvantage, or you only have disadvantage. In both cases,
-			//just return the sources array, which will either be empty for the first case, or contain the
-			//disadvantages in the second case.
-			return sources;
-		}
+			//the recursive function. Keeps running itself until enough choices are made.
+			function handleChoice(chosen) {
+				result[result.length] = chosen;
 
-		const dialog = new utils.Dialog(title, content);
+				chosen.in_use = true;
 
-		if (bummer) {
-			dialog.addButton(bummer);
-		} else {
-			dialog.addButton(yes).addButton(no);
-		}
+				if (result.length < amount) { return choose(true).show().then(handleChoice); }
 
-		//takes the sources array, and untoggles the "in_use" flag that may have been created, so they can be used in successive rolls.
-		return dialog.onClose(_ => null).show().then(arr => {
-			if (arr === null) { return arr; }
+				return result;
+			}
 			
-			return arr.map(vantage => {
+			return choose().show().then(handleChoice);
+		}
+
+		//go through array and delete the .in_use key from any values in the array
+		//then, add a use key to any object that doesn't have one, and increment the value by one.
+		//finally, return the array.
+		function process(array) {	
+			if (array === null) { return null; }
+
+			return array.map(vantage => {
 				delete vantage.in_use;
+
+				if (!vantage.uses) { vantage.uses = 0; }
+
+				vantage.uses++;
+
 				return vantage;
 			});
-		});
+		}
+
+		if (has_disadvantage && advantage_amt > disadvantage_amt) {
+			return utils.Dialog.ok("Advantage",
+				`You have ${disadvantage_amt} source${dis_plural} of disadvantage on you, 
+				and have ${advantage_amt} source${ad_plural} of advantage. Would you like 
+				to use your advantage${ad_plural}?`)
+				.then(choice => {
+					if (choice === null) { return null; }
+
+					return new utils.Dialog()
+						.setTitle("Advantage")
+						.setContent(`Do you want to have advantage, or only remove your disadvantage?`)
+						.addButton(new utils.Button()
+							.setIcon("plus")
+							.setText("Gain Advantage")
+							.setCallback(_ => true))
+						.addButton(new utils.Button()
+							.setIcon("equals")
+							.setText("Remove Disadvantage")
+							.setCallback(_ => false))
+						.onClose(_ => null)
+						.show();
+				})
+				.then(choice => {
+					if (choice === null) { return null; }
+
+					//choice is implictly cast to 1 or 0
+					return callback(advantages, disadvantage_amt + choice, sources);
+				})
+				.then(process)
+		}
+
+		if (has_disadvantage && advantage_amt == disadvantage_amt) {
+			return utils.Dialog.prompt("Advantage",
+				`You have ${disadvantage_amt} source${dis_plural} of disadvantage on you, 
+				and have ${advantage_amt} source${ad_plural} of advantage. Would you like 
+				to use your advantage${ad_plural} to remove your disadvantage${dis_plural}?`)
+				.then(choice => {
+					if (choice === null)  { return null; }
+					if (choice === false) { return sources; }
+
+					return callback(advantages, disadvantage_amt, sources);
+				})
+				.then(process)
+		}
+
+		if (has_disadvantage && advantage_amt < disadvantage_amt) {
+			return utils.Dialog.ok("Advantage",
+				`You have ${disadvantage_amt} source${dis_plural} of disadvantage on you, 
+				but have ${advantage_amt} source${ad_plural} of advantage. Using your 
+				advantage${ad_plural} won't help in this instance.`)
+		}
+
+		if (advantage_amt > 0) {
+			return utils.Dialog.prompt("Advantage",
+				`You have${advantage_amt == 1 ? " a " : " "}source${ad_plural} of advantage! Would you like to use ${advantage_amt == 1 ? "it" : "one"}?`)
+				.then(choice => {
+					if (choice === null) { return null; }
+
+					return callback(advantages, 1, sources);
+				})
+				.then(process)
+		}
+
+		if (advantage_amt == 0) {
+			return [];
+		}
 	}
 	
 	//set whether there is advantage, disadvantage, or neither, as well as source and optional icon.
@@ -801,9 +816,9 @@ class Advantage {
 		}
 
 		this.#advantage = advantage;
+		this.#expires   = expires;
 		this.#source    = source;
 		this.#icon      = icon;
-		this.#expires   = expires;
 	}
 
 	//Runs the expires function. If this function returns a truthy value, then the Advantage instance should be removed.

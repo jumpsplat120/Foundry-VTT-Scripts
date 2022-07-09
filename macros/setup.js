@@ -919,6 +919,39 @@ class CustomDialog {
 	#close;
 	#promises = [];
 
+	//helper function that builds a simple dialog that has an okay button. All values are optional.
+	static ok(title, content, ok, close) {
+		ok    = ok    ?? (_ => true);
+		close = close ?? (_ => null);
+
+		return new utils.Dialog(title, content)
+			.addButton(new utils.Button()
+				.setIcon("check")
+				.setText("Ok")
+				.setCallback(ok))
+			.onClose(close)
+			.show()
+	}
+
+	//helper function that builds a simple dialog with a yes and no button. All values are optional.
+	static prompt(title, content, yes, no, close) {
+		yes   = yes   ?? (_ => true);
+		no    = no    ?? (_ => false);
+		close = close ?? (_ => null);
+
+		return new utils.Dialog(title, content)
+			.addButton(new utils.Button()
+				.setIcon("check")
+				.setText("Yes")
+				.setCallback(yes))
+			.addButton(new utils.Button()
+				.setIcon("times")
+				.setText("No")
+				.setCallback(no))
+			.onClose(close)
+			.show()
+	}
+
 	//Dialogs don't need a title and content, but they can be defined initially, or defined in
 	//one of the chaining functions
 	constructor(title = "", content = "") {

@@ -462,7 +462,14 @@ class CustomRoll {
 			if (name == "Die") { arr[arr.length] = term; }
 			//but only add a numeric term if it's labeled. If there's no label then there's no point in adding it
 			//since we are really only adding it below for labeling purposes
-			if (name == "NumericTerm" && (formula.includes("{") || formula.includes("["))) { arr[arr.length] = term; }
+			if (name == "NumericTerm" && (formula.includes("{") || formula.includes("["))) {
+				//get the operator before this numeric term if there is one, to determine if the number
+				//in the die tooltip should appear as a positive or negative number. Basically in all
+				//cases except for subtraction, the number should appear positive
+				term.number *= (roll.terms[roll.terms.indexOf(term) - 1]?.operator ?? "+") == "-" ? -1 : 1;
+				
+				arr[arr.length] = term;
+			}
 		}
 
 		//flatten the array because the parathneticals will have it wonky
@@ -481,9 +488,13 @@ class CustomRoll {
 		message.addDieTotal(html.match(/<h4 class="dice-total(.*?)">(\d+)<\/h4>/)[2]);
 		
 		//using the formula, create a roll, but don't parse it, and look at all the terms to determine
-		//order of tooltips. Reversing it so we can just pop the values off.
+		//order of tooltips.
 		const order = this.#iterate(roll);
 		
+		//put all data into this array, so that we can reverse it after everythings done, and the
+		//tooltips show up in the order the formula is
+		const new_order = [];
+
 		//get all of the pieces of already rolled die results, matcher is different to include newlines and spacing
 		//add the tooltips to the new roll instance, adding in numeric values when appropriate
 		for (const match of [...html.matchAll(/<section class="tooltip-part">([^]*?)<\/section>/g)]) {
@@ -536,14 +547,31 @@ class CustomRoll {
 			while (order[order.length - 1].constructor.name == "NumericTerm") {
 				const term = order[order.length - 1];
 				const label = term.options.flavor;
-				message.addDieTooltip(label.match(/{(.*?)}/)?.[1] ?? "", label.replace(/{.*?}/, ""), term.number);
+
+				new_order[new_order.length] = { 
+					formula: label.match(/{(.*?)}/)?.[1] ?? "",
+					flavor: label.replace(/{.*?}/, ""),
+					total: term.number,
+					dice: []
+				}
+
 				order.pop();
 			}
 
-			message.addDieTooltip(data.formula, data.flavor, data.total, ...data.dice);
+			new_order[new_order.length] = { 
+				formula: data.formula,
+				flavor: data.flavor,
+				total: data.total,
+				dice: data.dice
+			}
+
 			order.pop();
 		}
 		
+		for (const tooltip of new_order.reverse()) {
+			message.addDieTooltip(tooltip.formula, tooltip.flavor, tooltip.total, ...tooltip.dice);
+		}
+
 		message.data = { type: CONST.CHAT_MESSAGE_TYPES.ROLL, roll: real_roll };
 
 		return message;
@@ -1209,7 +1237,7 @@ function changeQuantity(item, amount, type) {
 		ui.notifications.warn(`Utils | ${amount} is less than zero. This should be handled. Setting quantity to zero...`);
 		amount = 0;
 	}
-	
+
 	if (type == "increase") { total = item.data.data.quantity + amount; }
 	if (type == "decrease") { total = item.data.data.quantity - amount; }
 	if (type == "set")      { total = amount; }

@@ -1,89 +1,64 @@
-const s = game.saved_macro;
-const u = s.utils;
-const t = s.tracking;
-const bow = u.getItemByName("longbow");
-const arrows = u.getItemByName("arrows");
-
-const audio_src = s.sounds.bow.draw.random();
-
-const advantage_dialog = new Dialog({
-		title: "Advantage",
-		content: "You have sources of advantage! Would you like to use one?",
-		buttons: {
-			yes: {
-				icon: '<i class="fas fa-check"></i>',
-				label: "Yes",
-				callback: event => {
-					const buttons = {}
-					t.advantage.forEach((advantage, i) => {
-						buttons[u.simpleName(advantage[0])] = {
-							icon: `<i class="fas fa-${advantage[2]}"></i>`,
-							label: advantage[0],
-							callback: _ => {
-								advantage[3]();
-								bow.rollAttack({fastForward: true, advantage: true, flavor: `Longbow w/ ${advantage[0]} - Attack Roll`}).then(roll => {t.damage.longbow = [roll.result.split(" ")[0] == 20, null, false] });
-								u.updateItemQuantity("arrows", 1, "-");
-								t.arrows++;
-								advantage[1]--;
-								if (advantage[1] == 0) { t.advantage.splice(i, 1); }
-								u.playSound(audio_src);
-							}
-						}
-					})
-					let d = new Dialog({
-						title: "Advantage Sources",
-						content: "Please choose a source of advantage.",
-						buttons: buttons
-					}).render(true);
-				}
-			},
-			no: {
-				icon: '<i class="fas fa-times"></i>',
-				label: "No",
-				callback: event => {
-					bow.rollAttack({fastForward: true }).then(roll => { t.damage.longbow = [roll.result.split(" ")[0] == 20, null, false] });
-					u.updateItemQuantity("arrows", 1, "-");
-					t.arrows++;
-					AudioHelper.play({src: audio_src, volume: 0.8, autoplay: true, loop: false}, true);
-				}
-			}
-		}
-	})
-
-
-const lucky_dialog = u.luckyPrompt(event => {
-	bow.rollAttack({fastForward: true, flavor: `Longbow w/ Lucky (Reroll) - Attack Roll` }).then(roll => { t.damage.longbow = [roll.result.split(" ")[0] == 20, null, false] });
-	t.lucky = false;
-	t.advantage = t.advantage.filter(arr => arr[0] != "Lucky");
-	AudioHelper.play({src: audio_src, volume: 0.8, autoplay: true, loop: false}, true);
-}, event => {
-	if (t.advantage.length > 0) {
-		advantage_dialog.render(true);
-	} else {
-		bow.rollAttack({fastForward: true, advantage: event.shiftKey, disadvantage: event.ctrlKey }).then(roll => { t.damage.longbow = [roll.result.split(" ")[0] == 20, null, false] });
-		u.updateItemQuantity("arrows", 1, "-");
-		t.arrows++;
-		AudioHelper.play({src: audio_src, volume: 0.8, autoplay: true, loop: false}, true);
-	}
-})
-
-if (arrows.data.data.quantity > 0) {
-	if (t.lucky && t.damage.longbow) {
-		lucky_dialog.render(true);
-	} else if (t.advantage.length > 0) {
-		advantage_dialog.render(true);
-	} else {
-		bow.rollAttack({fastForward: true, advantage: event.shiftKey, disadvantage: event.ctrlKey }).then(roll => { t.damage.longbow = [roll.result.split(" ")[0] == 20, null, false] });
-		u.updateItemQuantity("arrows", 1, "-");
-		t.arrows++;
-		//AudioHelper.play({src: audio_src, volume: 0.8, autoplay: true, loop: false}, true);
-	}
-} else {
-	Dialog.prompt({
-		title: "Ammo Notification",
-		content: "You have no more ammo!",
-		label: "OK",
-		callback: function() {},
-		rejectClose: false
-	});
+if (!utils) {
+	ui.notifications.error("Missing required utils. Run the setup macro first!");
+	return;
 }
+
+const longbow   = utils.getItemByName("longbow");
+const arrows    = utils.getItemByName("arrows");
+const item_data = longbow.data.data;
+const abilities = game.user.character.data.data.abilities;
+const str       = abilities.str.mod;
+let pool_data;
+let sharpshooter;
+
+if (utils.getItemByName("longbow").data.data.quantity <= 0) {
+	new utils.Dialog.ok("Ammo Notification", "You don't have any arrows for your bow!");
+	return;
+}
+
+utils.Advantage.check()
+	.then(sources => {
+		if (sources === null) { return null; }
+		
+		pool_data = utils.Advantage.pool(sources);
+
+		return utils.playSound(utils.sounds?.bow_draw?.random);
+	})
+	.then(_ => {
+		if (_ === null) { return null; }
+
+		if (!(item_data.proficient && !!utils.getItemByName("Sharpshooter"))) { return false; }
+
+		//if proficent, and have the sharpshooter feat...
+		return new utils.Dialog("Sharpshooter", "You have the sharpshooter feat! If you'd like, you can take a -5 to your attack, and if the attack hits, you gain a +10 in damage.")
+			.addButton(new utils.Button()
+				.setIcon("bullseye")
+				.setText("Heck Ya")
+				.setCallback(_ => { sharpshooter = true; }))
+			.addButton(new utils.Button()
+				.setIcon("times")
+				.setText("Nah")
+				.setCallback(_ => { sharpshooter = false; }))
+			.onClose(_ => null)
+			.show()
+	})
+	.then(_ => {
+		if (_ === null) { return null; }
+
+		return new utils.Roll(longbow)
+			.add(pool_data.formula, pool_data.label, "Base")
+			.add(str, "Strength", "Ability Modifier")
+			.maybeAdd(item_data.proficient, item_data.prof.term, "Martial Weapons", "Proficency")
+			.maybeAdd(utils.getItemByName("Fighting Style: Archery"), 2, "Fighting Style - Archery", "Feat")
+			.maybeSubtract(sharpshooter, 5, "Sharpshooter", "Feat")
+			.roll()
+	})
+	.then(message => {
+		if (message === null) { return null; }
+
+		utils.decreaseItemQuantity(arrows, 1);
+		
+		utils.tracking.arrows++;
+
+		return message.setFlavor("Attack Roll").show();
+	});

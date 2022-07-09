@@ -313,7 +313,7 @@ class Message {
 	addDieTotal(text, special) {
 		if (!this.#dice.total) { this.#dice.total = []; }
 
-		special = ({ crit: " critical", fail: " fumble" })?.[special] ?? "";
+		special = ({ crit: " critical", fail: " fumble", [" critical"]: " critical", [" fumble"]: " fumble" })?.[special] ?? "";
 
 		this.#dice.total[this.#dice.total.length] = { text, special };
 
@@ -384,7 +384,7 @@ class Message {
 
 	popDieTooltip() {
 		let res = this.#dice.tooltip.pop?.();
-
+	
 		if (this.#dice.tooltip?.length ?? -1 == 0) { delete this.#dice.tooltip; }
 
 		return res;
@@ -547,7 +547,7 @@ class CustomRoll {
 
 	get formula() { return this.#formula; }
 
-	set formula(x) { console.log("You can not set the formula of a roll directly."); }
+	set formula(x) { console.warn("You can not set the formula of a roll directly."); }
 
 	#operation(op, term, label, title) {
 		if (this.#formula.length > 0) { this.#formula += ` ${op} `; }
@@ -632,12 +632,13 @@ class CustomRoll {
 	#buildRoll(real_roll, html) {
 		const roll    = new Roll(this.#formula);
 		const message = new utils.Message();
-		
+		const total   = html.match(/<h4 class="dice-total(.*?)">(\d+)<\/h4>/);
+
 		//remove labels and only display math
 		message.addDieFormula(this.#formula.replace(/\[.*?\]/g, "").replace(/\{.*?\}/g, ""));
 
 		//find the die total from the html, and use that
-		message.addDieTotal(html.match(/<h4 class="dice-total(.*?)">(\d+)<\/h4>/)[2]);
+		message.addDieTotal(total[2], total[1]);
 		
 		//using the formula, create a roll, but don't parse it, and look at all the terms to determine
 		//order of tooltips.
@@ -1261,9 +1262,11 @@ class CustomDialog {
 //types of damage, they are most likely seperate sources of damage, and should be treated as seperate damage instances.
 class Damage {
 	#type;
+	#info;
 	#source;
 	#formula;
 
+	//Create a "damage" item that can be used for utils.Rolls
 	static item = utils.getItemByName("dagger").clone({ 
 		img: "https://www.jumpsplat120.com/assets/images/explosion.png",
 		name: "Damage",
@@ -1277,23 +1280,72 @@ class Damage {
 	});
 
 	//pool multiple sources of damage together to create a super roll, rather than rolling each
-	//source of damage seperately.
+	//source of damage seperately. returns the a promise that will return the roll, for any
+	//final processing that might want to be done, such as dividing all the damage by 2. Hides the
+	//type in backticks and is removed in format, so if your item name has backticks, don't.
 	static pool(array) {
-		const roll = new utils.Roll()
+		const roll = new utils.Roll(utils.Damage.item);
 
 		for (const damage of array) {
-			if (!(damage instanceof utils.Damage)) { continue; }
-
-
+			roll.add(damage.formula, damage.info, `${damage.source.data.name}\`${damage.type}\``);
 		}
+
+		return roll.roll();
 	}
 
-	//type of damage, such as fire, piercing, magic, etc
-	//source should be an item object, such as longbow, dagger, sharpshooter, etc. All spells/feats/weapons are items in foundry
-	//formula should not contain labels, and be simple; they should not reference things like "ability mod" but should just
-	//have the value pre entered.
-	constructor(type, source, formula) {
+	//Takes a roll message, and formats the message. Used most commonly with the one recieved
+	//from Damage.pool. returns the promise from showing the message.
+	static format(message) {
+		message.setFlavor("Damage Roll");
+
+		const data     = {};
+		const tooltips = [];
+
+		let content = "<ul>";
+		let tooltip = message.popDieTooltip();
+		
+		//pop off all tooltips, collecting relevant info, and stripping type until there are no more.
+		while (tooltip) {
+			const type = tooltip.formula.match(/`(.*?)`/)[1];
+
+			if (!data[type]) { data[type] = 0; }
+
+			data[type] += Number(tooltip.total);
+
+			tooltip.formula = tooltip.formula.replace(/`(.*?)`/, "");
+
+			//deepcopy the tooltip so we don't end up with 9 references to the last tooltip.
+			tooltips[tooltips.length] = JSON.parse(JSON.stringify(tooltip));
+
+			tooltip = message.popDieTooltip();
+		}
+
+		//rebuild the tooltips
+		for (const tooltip of tooltips.reverse()) {
+			message.addDieTooltip(tooltip.formula, tooltip.flavor, tooltip.total, ...tooltip.dice);
+		}
+
+		//build the damage types breakdown
+		for (const [type, total] of Object.entries(data)) {
+			content += `<li>${type} - ${total}</li>`;
+		}
+
+		content += "</ul>";
+
+		return message.setCardContent(content).show();
+	}
+
+	//type of damage, such as fire, piercing, magic, etc. This will not show up in the tooltip, but will show up in the
+	//breakdown that can be viewed by clicking the damage dropdown, ie the "content" of the body.
+	//source can be an item object, such as longbow, dagger, sharpshooter, etc. All spells/feats/weapons are items in foundry,
+	//or it can be a string identifier, such as "Ability Modifier". This will be used as the title for the damage source.
+	//info about the damage that might be needed to identify it. For example, a dagger attack could say "Attack", or "Bonus - Light".
+	//this will be used as the label.
+	//formula should not contain labels, and be simple; for example, a damage source would be the base 1d4 of a dagger, and
+	//not include the ability modifier. The ability mod would be considered a seperate source of damage.
+	constructor(type, source, info, formula) {
 		this.#type    = type;
+		this.#info    = info;
 		this.#source  = source;
 		this.#formula = formula;
 	}
@@ -1305,10 +1357,12 @@ class Damage {
 	get formula() { return this.#formula; }
 
 	get roll() {
-		return new utils.Roll(this.#source)
-			.add(this.#formula, this.#type)
+		const item = typeof this.#source == "string" ? utils.Damage.item : this.#source;
+
+		return new utils.Roll(item)
+			.add(this.#formula, this.#info, `${item.data.name}\`${this.#type}\``)
 			.roll()
-			.then(message => message.addFlavor("Damage Roll").show())
+			.then(utils.Damage.format)
 	}
 
 	set type(x) { console.warn("Damage type is immutable. Rather than change the type, make a new instance."); }
@@ -1317,7 +1371,7 @@ class Damage {
 
 	set formula(x) { console.warn("Damage formula is immutable. Rather than change the formula, make a new instance."); }
 
-	set roll(x) { console.log("You can not set the roll of a damage type."); }
+	set roll(x) { console.warn("You can not set the roll of a damage type."); }
 
 }
 

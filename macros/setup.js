@@ -46,6 +46,154 @@ if (!window.utils) {
 	delete window.utils;
 }
 
+window.utils = {};
+
+//gets an item from a character, or from the local character, by name. Takes
+//names like wooden_sword as well as Wooden Sword
+utils.getItemByName = (item_name, character) => {	
+	const name = utils.simpleName(item_name);
+
+	for (const item of [...(character ?? game.user.character).data.items.values()]) {
+		if (utils.simpleName(item.name) === name) { return item; }
+	}
+}
+
+//vaidates if a string is a valid Font Awesome Icon
+utils.validateFA = icon => {
+	//look through styles sheets
+	for (const sheet of [...document.styleSheets]) {
+		//when we find the fontawesome one...
+		if (sheet?.href?.includes?.("fontawesome")) {
+			//look at all the rules...
+			for (const rule of [...sheet.cssRules]) {
+				//if it's a stylerule, and if the selectorText matches the attempted icon...
+				if (rule.constructor.name == "CSSStyleRule" && rule.selectorText.match(`fa-${icon}::before`)) {
+					return true;
+				}
+			}
+			//once we found the fa sheet, we don't need to keep looking.
+			break;
+		}
+	}
+
+	return false;
+}
+
+//Helper for the helper. Plays a sound with intelligent defaults, and returns a promise
+//that fires when the sound is done playing. returns the sound object that was playing.
+utils.playSound = (src, volume = 0.8, autoplay = true, loop = false, send = false) => {
+	if (!src) {
+		ui.notifications.warn("No sound was given to playSound.");
+		return;
+ 	}
+
+	return AudioHelper.play({ src, volume, autoplay, loop }, send)
+		.then(sound => {
+			//some sounds are so short, that by the time we get the sound instance
+			//they're already done playing. If they're playing, we schedule, but if
+			//not, just return the sound directly.
+			if (sound.isPlaying) { return sound.schedule(_ => sound, sound.duration); }
+			return sound;
+		});
+}
+
+//Returns true if a key is being pressed.
+utils.isPressed  = key => !!utils.pressed_keys[key.toLowerCase()];
+
+//takes a name like 'Wooden Sword' and returns 'wooden_sword'
+utils.simpleName = item_name => item_name.replaceAll(" ", "_").toLowerCase();
+
+//takes a name like 'wooden_sword' and returns 'Wooden Sword'
+utils.fancyName  = item_name => item_name.replaceAll("_", " ").toTitleCase();
+
+//creates a prompt for rerolling via the lucky feat. takes two callbacks,
+//which are called when the prompt is answered yes or no.
+utils.luckyPrompt = (yes, no) => {
+	new Dialog({
+		title: "Lucky",
+		content: "Is this a reroll for the Lucky feat?",
+		buttons: {
+			yes: { icon: '<i class="fas fa-check"></i>', label: "Yes", callback: yes },
+			no:  { icon: '<i class="fas fa-times"></i>', label: "No", callback: no   }
+		}
+	}).render(true);
+}
+
+//helper function that returns an array of pronouns, based on a character's gender,
+//as determined by their character sheet. Very simple, only returns masc, fem, or neutral pronouns. 
+utils.getPronouns = character => {
+	const gender = (character ?? game.user.character).data.data.details.gender.toLowerCase();
+	return !!({ female: true, girl: true, gal: true, woman: true, f: true, fem: true, ["she/her"]: true })[gender] ? ["she", "her", "herself", "hers", "her"] :
+		   !!({ male: true, boy: true, guy: true, man: true, m: true, masc: true, ["he/him"]: true })[gender]      ? ["he", "him", "himself", "his", "his"]   : 
+		   																											 ["they", "them", "themselves", "theirs", "their"];
+}
+
+function changeQuantity(item, amount, type) {
+	let total = 0;
+
+	if (typeof item == "string") {
+		const i = utils.getItemByName(item);
+
+		if (!i) { 
+			ui.notifications.error(`Utils | Failed to find an item by the name ${item}`);
+			return;
+		}
+
+		item = i;
+	}
+	
+	if (item?.data?.data?.quantity === undefined) {
+		ui.notifications.error(`Utils | ${item.name} does not have a quantity to change.`);
+		return;
+	}
+
+	if (typeof amount !== "number") {
+		ui.notifications.error(`Utils | ${amount} is not a numeric value to ${type} quantity ${type === "set" ? "to" : "by"}.`);
+		return;
+	}
+	
+	if (type == "decrease" && item.data.data.quantity - amount <= 0) {
+		ui.notifications.warn(`Utils | Subtracting ${amount} ${item.name} will put you under zero quantity. This should be accounted for. Setting quantity to zero...`);
+		amount = item.data.data.quantity;
+	}
+
+	if (type == "set" && amount < 0) {
+		ui.notifications.warn(`Utils | ${amount} is less than zero. This should be handled. Setting quantity to zero...`);
+		amount = 0;
+	}
+
+	if (type == "increase") { total = item.data.data.quantity + amount; }
+	if (type == "decrease") { total = item.data.data.quantity - amount; }
+	if (type == "set")      { total = amount; }
+
+	item.update({ "data.quantity": total });
+}
+
+//increase the quantity of an item.
+utils.increaseItemQuantity = (item, amount) => {
+	changeQuantity(item, amount, "increase");
+}
+
+//decrease thr quantity of an item.
+utils.decreaseItemQuantity = (item, amount) => {
+	changeQuantity(item, amount, "decrease");
+}
+
+//set the quantity of an item.
+utils.setItemQuantity = (item, amount) => {
+	changeQuantity(item, amount, "set");
+}
+
+//returns a global uuid, in the format of '94f87472-e276-6d50-71e5-880e3ca6675e'
+utils.guid = _ => {
+	function f(s) {
+		let p = (Math.random().toString(16) + "000000000").substr(2, 8);
+		return s ? "-" + p.substr(0, 4) + "-" + p.substr(4, 4) : p;
+	}
+
+	return f() + f(true) + f(true) + f();
+}
+
 //flavor goes above content, but below the senders name. Usually used as a title, if the header isn't being used.
 //content is the regular sized text. You'd use this if you wanted it to look like a regular message
 //header is the part with an image and a fancy title, used for items and abilites. header_content is the text, and header_image is a url to the image that's displayed
@@ -396,6 +544,10 @@ class CustomRoll {
 
 		this.#item = item;
 	}
+
+	get formula() { return this.#formula; }
+
+	set formula(x) { console.log("You can not set the formula of a roll directly."); }
 
 	#operation(op, term, label, title) {
 		if (this.#formula.length > 0) { this.#formula += ` ${op} `; }
@@ -1102,7 +1254,72 @@ class CustomDialog {
 	}
 }
 
-window.utils = {};
+//Create a damage instance, which contains damage type, source, and formula. Damages can be turned into rolls
+//directly, or an array of them can be pooled together to create one roll with all of the damage calculated
+//at once. Formula's should *not* contain labels as labels and titles are created using type and source when
+//rolled or pooled together. A damage source should be simple; if you have damage being dealt that is multiple
+//types of damage, they are most likely seperate sources of damage, and should be treated as seperate damage instances.
+class Damage {
+	#type;
+	#source;
+	#formula;
+
+	static item = utils.getItemByName("dagger").clone({ 
+		img: "https://www.jumpsplat120.com/assets/images/explosion.png",
+		name: "Damage",
+		permission: { default: 3 },
+		data: {
+			description: { 
+				chat: "<p>A collection of sources of damage.</p>",
+				value: "<p>A collection of sources of damage.</p>"
+			}
+		}
+	});
+
+	//pool multiple sources of damage together to create a super roll, rather than rolling each
+	//source of damage seperately.
+	static pool(array) {
+		const roll = new utils.Roll()
+
+		for (const damage of array) {
+			if (!(damage instanceof utils.Damage)) { continue; }
+
+
+		}
+	}
+
+	//type of damage, such as fire, piercing, magic, etc
+	//source should be an item object, such as longbow, dagger, sharpshooter, etc. All spells/feats/weapons are items in foundry
+	//formula should not contain labels, and be simple; they should not reference things like "ability mod" but should just
+	//have the value pre entered.
+	constructor(type, source, formula) {
+		this.#type    = type;
+		this.#source  = source;
+		this.#formula = formula;
+	}
+
+	get type() { return this.#type; }
+
+	get source() { return this.#source; }
+
+	get formula() { return this.#formula; }
+
+	get roll() {
+		return new utils.Roll(this.#source)
+			.add(this.#formula, this.#type)
+			.roll()
+			.then(message => message.addFlavor("Damage Roll").show())
+	}
+
+	set type(x) { console.warn("Damage type is immutable. Rather than change the type, make a new instance."); }
+
+	set source(x) { console.warn("Damage source is immutable. Rather than change the source, make a new instance."); }
+
+	set formula(x) { console.warn("Damage formula is immutable. Rather than change the formula, make a new instance."); }
+
+	set roll(x) { console.log("You can not set the roll of a damage type."); }
+
+}
 
 //Message class for building a message.
 utils.Message = Message;
@@ -1119,156 +1336,8 @@ utils.Button = DialogButton;
 //Dialog class for creating better dialogs.
 utils.Dialog = CustomDialog;
 
-//Helper function that wraps Dialog.prompt. Uses intelligent defaults
-utils.prompt = () => {
-
-}
-
-//vaidates if a string is a valid Font Awesome Icon
-utils.validateFA = icon => {
-	//look through styles sheets
-	for (const sheet of [...document.styleSheets]) {
-		//when we find the fontawesome one...
-		if (sheet?.href?.includes?.("fontawesome")) {
-			//look at all the rules...
-			for (const rule of [...sheet.cssRules]) {
-				//if it's a stylerule, and if the selectorText matches the attempted icon...
-				if (rule.constructor.name == "CSSStyleRule" && rule.selectorText.match(`fa-${icon}::before`)) {
-					return true;
-				}
-			}
-			//once we found the fa sheet, we don't need to keep looking.
-			break;
-		}
-	}
-
-	return false;
-}
-
-//Helper for the helper. Plays a sound with intelligent defaults, and returns a promise
-//that fires when the sound is done playing. returns the sound object that was playing.
-utils.playSound = (src, volume = 0.8, autoplay = true, loop = false, send = false) => {
-	if (!src) {
-		ui.notifications.warn("No sound was given to playSound.");
-		return;
- 	}
-
-	return AudioHelper.play({ src, volume, autoplay, loop }, send)
-		.then(sound => {
-			//some sounds are so short, that by the time we get the sound instance
-			//they're already done playing. If they're playing, we schedule, but if
-			//not, just return the sound directly.
-			if (sound.isPlaying) { return sound.schedule(_ => sound, sound.duration); }
-			return sound;
-		});
-}
-
-//Returns true if a key is being pressed.
-utils.isPressed  = key => !!utils.pressed_keys[key.toLowerCase()];
-
-//takes a name like 'Wooden Sword' and returns 'wooden_sword'
-utils.simpleName = item_name => item_name.replaceAll(" ", "_").toLowerCase();
-
-//takes a name like 'wooden_sword' and returns 'Wooden Sword'
-utils.fancyName  = item_name => item_name.replaceAll("_", " ").toTitleCase();
-
-//creates a prompt for rerolling via the lucky feat. takes two callbacks,
-//which are called when the prompt is answered yes or no.
-utils.luckyPrompt = (yes, no) => {
-	new Dialog({
-		title: "Lucky",
-		content: "Is this a reroll for the Lucky feat?",
-		buttons: {
-			yes: { icon: '<i class="fas fa-check"></i>', label: "Yes", callback: yes },
-			no:  { icon: '<i class="fas fa-times"></i>', label: "No", callback: no   }
-		}
-	}).render(true);
-}
-
-//gets an item from a character, or from the local character, by name. Takes
-//names like wooden_sword as well as Wooden Sword
-utils.getItemByName = (item_name, character) => {	
-	const name = utils.simpleName(item_name);
-
-	for (const item of [...(character ?? game.user.character).data.items.values()]) {
-		if (utils.simpleName(item.name) === name) { return item; }
-	}
-}
-
-//helper function that returns an array of pronouns, based on a character's gender,
-//as determined by their character sheet. Very simple, only returns masc, fem, or neutral pronouns. 
-utils.getPronouns = character => {
-	const gender = (character ?? game.user.character).data.data.details.gender.toLowerCase();
-	return !!({ female: true, girl: true, gal: true, woman: true, f: true, fem: true, ["she/her"]: true })[gender] ? ["she", "her", "herself", "hers", "her"] :
-		   !!({ male: true, boy: true, guy: true, man: true, m: true, masc: true, ["he/him"]: true })[gender]      ? ["he", "him", "himself", "his", "his"]   : 
-		   																											 ["they", "them", "themselves", "theirs", "their"];
-}
-
-function changeQuantity(item, amount, type) {
-	let total = 0;
-
-	if (typeof item == "string") {
-		const i = utils.getItemByName(item);
-
-		if (!i) { 
-			ui.notifications.error(`Utils | Failed to find an item by the name ${item}`);
-			return;
-		}
-
-		item = i;
-	}
-	
-	if (item?.data?.data?.quantity === undefined) {
-		ui.notifications.error(`Utils | ${item.name} does not have a quantity to change.`);
-		return;
-	}
-
-	if (typeof amount !== "number") {
-		ui.notifications.error(`Utils | ${amount} is not a numeric value to ${type} quantity ${type === "set" ? "to" : "by"}.`);
-		return;
-	}
-	
-	if (type == "decrease" && item.data.data.quantity - amount <= 0) {
-		ui.notifications.warn(`Utils | Subtracting ${amount} ${item.name} will put you under zero quantity. This should be accounted for. Setting quantity to zero...`);
-		amount = item.data.data.quantity;
-	}
-
-	if (type == "set" && amount < 0) {
-		ui.notifications.warn(`Utils | ${amount} is less than zero. This should be handled. Setting quantity to zero...`);
-		amount = 0;
-	}
-
-	if (type == "increase") { total = item.data.data.quantity + amount; }
-	if (type == "decrease") { total = item.data.data.quantity - amount; }
-	if (type == "set")      { total = amount; }
-
-	item.update({ "data.quantity": total });
-}
-
-//increase the quantity of an item.
-utils.increaseItemQuantity = (item, amount) => {
-	changeQuantity(item, amount, "increase");
-}
-
-//decrease thr quantity of an item.
-utils.decreaseItemQuantity = (item, amount) => {
-	changeQuantity(item, amount, "decrease");
-}
-
-//set the quantity of an item.
-utils.setItemQuantity = (item, amount) => {
-	changeQuantity(item, amount, "set");
-}
-
-//returns a global uuid, in the format of '94f87472-e276-6d50-71e5-880e3ca6675e'
-utils.guid = _ => {
-	function f(s) {
-		let p = (Math.random().toString(16) + "000000000").substr(2, 8);
-		return s ? "-" + p.substr(0, 4) + "-" + p.substr(4, 4) : p;
-	}
-
-	return f() + f(true) + f(true) + f();
-}
+//Damage class for handling damage sources.
+utils.Damage = Damage;
 
 utils.tracking = {};
 

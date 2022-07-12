@@ -734,7 +734,7 @@ class CustomRoll {
 	//rolls the formula, and returns the result as a chat message.
 	roll() {
 		if (this.#formula.length == 0) {
-			ui.notifications.warn("Tried to roll an empty formula.");
+			ui.notifications.warn("Utils | Tried to roll an empty formula.");
 			return;
 		}
 
@@ -1084,7 +1084,7 @@ class DialogButton {
 
 	setCallback(callback) {
 		if (typeof callback != "function") {
-			ui.notifications.error("Failed to build button as passed callback was not a function.");
+			ui.notifications.error("Utils | Failed to build button as passed callback was not a function.");
 			return;
 		}
 
@@ -1102,7 +1102,7 @@ class DialogButton {
 		};
 	}
 
-	set object(x) { console.warn("Can not set object of button directly."); }
+	set object(x) { console.warn("Utils | Can not set object of button directly."); }
 }
 
 //Creates a dialog more seamlessly. After building a dialog, showing it returns a promise, that runs once
@@ -1165,7 +1165,7 @@ class CustomDialog {
 
 	get content() { return this.#content; }
 
-	set buttons(x) { console.warn("You can not set a buttons object directly. Use the add/removeButton methods."); }
+	set buttons(x) { console.warn("Utils | You can not set a buttons object directly. Use the add/removeButton methods."); }
 	
 	set title(x) { this.setTitle(x); }
 
@@ -1188,7 +1188,7 @@ class CustomDialog {
 	//option. The first button will always be considered default if one is not specified.
 	addButton(button, is_default) {
 		if (!(button instanceof utils.Button)) {
-			ui.notifications.error(`Failed to add '${button.toString()}' to Dialog as it's not a Button instance.`);
+			ui.notifications.error(`Utils | Failed to add '${button.toString()}' to Dialog as it's not a Button instance.`);
 			return;
 		}
 
@@ -1202,7 +1202,7 @@ class CustomDialog {
 	//Removes a button by label.
 	removeButton(label) {
 		if (this.#buttons[label] === undefined) {
-			console.warn(`No button labeled '${label}' was found in Dialog buttons.`);
+			console.warn(`Utils | No button labeled '${label}' was found in Dialog buttons.`);
 		} else {
 			delete this.#buttons[label];
 		}

@@ -1353,7 +1353,11 @@ class Damage {
 	//this will be used as the label.
 	//formula should not contain labels, and be simple; for example, a damage source would be the base 1d4 of a dagger, and
 	//not include the ability modifier. The ability mod would be considered a seperate source of damage.
-	constructor(type, source, info, formula) {
+	//uuid is an optional value, that can group various damage sources together. For example, while the 1d4 of a dagger is not
+	//the same source of damage as the modifier, they are grouped together, and would not be dealt apart from each other. A use
+	//case is when sources with similar uuids are created, they will show up together when using the Deal Damage macro, rather
+	//than as seperate options.
+	constructor(type, source, info, formula, uuid) {
 		this.#type    = type;
 		this.#info    = info;
 		this.#source  = source;

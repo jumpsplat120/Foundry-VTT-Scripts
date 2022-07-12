@@ -748,7 +748,8 @@ class CustomRoll {
 		//make a roll using the formula, then turn into into a message
 		//then get the html from that message (not everything needs to be
 		//async foundry)
-		return new Roll(this.#formula).roll({async: true})
+		return new Roll(this.#formula)
+		.roll({async: true})
 		.then(roll => roll.toMessage(null, {create: false})
 				.then(data => new ChatMessage(data).getHTML())
 				.then(html => this.#buildRoll(roll, html[0].outerHTML))

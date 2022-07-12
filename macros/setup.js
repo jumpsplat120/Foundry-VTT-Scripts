@@ -186,7 +186,7 @@ utils.setItemQuantity = (item, amount) => {
 }
 
 //returns a global uuid, in the format of '94f87472-e276-6d50-71e5-880e3ca6675e'
-utils.guid = _ => {
+utils.uuid = _ => {
 	function f(s) {
 		let p = (Math.random().toString(16) + "000000000").substr(2, 8);
 		return s ? "-" + p.substr(0, 4) + "-" + p.substr(4, 4) : p;
@@ -418,7 +418,7 @@ class Message {
 			res = `<div class="card-buttons">`;
 
 			for (const button of this.#buttons) {
-				//const uuid = game.saved_macro.utils.guid();
+				//const uuid = game.saved_macro.utils.uuid();
 				//button_ids[button_ids.length] = { uuid: uuid, onclick: button.onclick, onmouseover: button.onmouseover, data: button.data };
 				res += `<button>${button.text}</button>`;
 			}
@@ -1035,7 +1035,7 @@ class DialogButton {
 	//It's expected that you'd create one initially, but you can use the
 	//setter to do it as well. It doesn't have a helper method, however.
 	constructor(key) {
-		this.#key = key?.toString?.() ?? utils.guid();
+		this.#key = key?.toString?.() ?? utils.uuid();
 	}
 
 	set key(x) { this.#key = key.toString(); }
@@ -1264,6 +1264,7 @@ class CustomDialog {
 class Damage {
 	#type;
 	#info;
+	#uuid;
 	#source;
 	#formula;
 
@@ -1349,6 +1350,7 @@ class Damage {
 		this.#info    = info;
 		this.#source  = source;
 		this.#formula = formula;
+		this.#uuid    = uuid ?? utils.uuid();
 	}
 
 	get type() { return this.#type; }

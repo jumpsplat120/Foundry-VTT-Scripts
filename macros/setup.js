@@ -1248,7 +1248,7 @@ class CustomDialog {
 				const f   = obj.callback;
 
 				//promisifies the original callback
-				obj.callback = function() { resolve(f()); };
+				obj.callback = function() { return f(resolve, reject); };
 	
 				data.buttons[key] = obj;
 			}
@@ -1257,7 +1257,7 @@ class CustomDialog {
 				//scopes the close function, otherwise it can't be accessed.
 				const f = this.#close;
 				
-				data.close = function() { resolve(f()); };
+				data.close = function() { return f(resolve, reject); };
 			}
 
 			new Dialog(data).render(true);

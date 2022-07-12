@@ -101,9 +101,6 @@ utils.playSound = (src, volume = 0.8, autoplay = true, loop = false, send = fals
 		});
 }
 
-//Returns true if a key is being pressed.
-utils.isPressed  = key => !!utils.pressed_keys[key.toLowerCase()];
-
 //takes a name like 'Wooden Sword' and returns 'wooden_sword'
 utils.simpleName = item_name => item_name.replaceAll(" ", "_").toLowerCase();
 
@@ -1400,7 +1397,6 @@ utils.Damage = Damage;
 utils.tracking = {};
 
 utils.tracking.arrows = 0;
-utils.tracking.keys   = {};
 utils.tracking.advantage    = [];
 utils.tracking.disadvantage = [];
 utils.tracking.damage    = {};
@@ -1427,8 +1423,4 @@ utils.sounds.dagger_swing = [
 	"https://www.jumpsplat120.com/assets/sfx/dagger/swing/5.wav"
 ]
 
-//tracks if a key is currently being pressed down or not.
-document.addEventListener("keydown", event => { utils.tracking.keys[event.key.toLowerCase()] = true;  });
-document.addEventListener("keyup",  event =>  { utils.tracking.keys[event.key.toLowerCase()] = false; });
-
-console.log("Macros | Setup has finished.");
+console.log("Utils | Setup has finished.");

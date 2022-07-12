@@ -1,5 +1,5 @@
 if (!utils) {
-	ui.notifications.error("Missing required utils. Run the setup macro first!");
+	ui.notifications.error("Utils | Missing required utils. Run the setup macro first!");
 	return;
 }
 

@@ -48,6 +48,10 @@ if (!window.utils) {
 
 window.utils = {};
 
+//Returns a rejection, so that rejections can be passed all the way
+//down the promise chain.
+utils.reject = (value) => Promise.reject(value);
+
 //gets an item from a character, or from the local character, by name. Takes
 //names like wooden_sword as well as Wooden Sword
 utils.getItemByName = (item_name, character) => {	

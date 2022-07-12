@@ -1037,6 +1037,10 @@ class DialogButton {
 	#text;
 	#callback;
 
+	static yes(r, _) { return r(true); }
+
+	static no(r, _) { return r(false); }
+
 	//Buttons have keys as a way to reference them within the dialog.
 	//You can make a button with a custom keys, or let it be auto generated.
 	//It's expected that you'd create one initially, but you can use the
@@ -1125,8 +1129,8 @@ class CustomDialog {
 
 	//helper function that builds a simple dialog that has an okay button. All values are optional.
 	static ok(title, content, ok, close) {
-		ok    = ok    ?? (_ => true);
-		close = close ?? (_ => null);
+		ok    = ok    ?? utils.Button.yes;
+		close = close ?? ((_, r) => r("Prompt dialog closed."));
 
 		return new utils.Dialog(title, content)
 			.addButton(new utils.Button()
@@ -1139,9 +1143,9 @@ class CustomDialog {
 
 	//helper function that builds a simple dialog with a yes and no button. All values are optional.
 	static prompt(title, content, yes, no, close) {
-		yes   = yes   ?? (_ => true);
-		no    = no    ?? (_ => false);
-		close = close ?? (_ => null);
+		yes   = yes   ?? utils.Button.yes;
+		no    = no    ?? utils.Button.no;
+		close = close ?? ((_, r) => r("Prompt dialog closed."));
 
 		return new utils.Dialog(title, content)
 			.addButton(new utils.Button()

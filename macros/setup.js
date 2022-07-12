@@ -732,7 +732,9 @@ class CustomRoll {
 	}
 
 	//rolls the formula, and returns the result as a chat message.
-	roll() {
+	roll(maybe) {
+		if (maybe === false) { return false; }
+		
 		if (this.#formula.length == 0) {
 			ui.notifications.warn("Utils | Tried to roll an empty formula.");
 			return;
@@ -782,6 +784,8 @@ class Advantage {
 	//Helper function that takes a pool of vantage sources, and returns an object with info
 	//based on all pooled sources.
 	static pool(array) {
+		if (array === false) { return false; }
+
 		if (array.length == 0) { return { state: 0, label: "", formula: "1d20" }; }
 
 		const result = { state: 0 };
@@ -824,7 +828,9 @@ class Advantage {
 
 	//returns a promise, that either waits for a dialog to finish, and gives the an array of vantage sources (can be empty),
 	//or simply returns null if the dialog was closed without choosing anything.
-	static async check() {
+	static async check(maybe) {
+		if (maybe === false) { return false; }
+
 		const tracking = utils.tracking;
 		const sources  = [];
 
@@ -1225,8 +1231,10 @@ class CustomDialog {
 	//shows the dialog, and returns a promise, which resolves when the dialog is closed, whether by
 	//selecting a button, or simply x'ing it out. default is a keyword, so we use square bracket
 	//notation to avoid errors.
-	async show() {
-		return new Promise((resolve) => {
+	async show(maybe) {
+		return new Promise((resolve, reject) => {
+			if (maybe === false) { return false; }
+
 			const data = {
 				title: this.#title,
 				content: this.#content,

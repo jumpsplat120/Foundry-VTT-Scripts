@@ -1396,10 +1396,16 @@ utils.Damage = Damage;
 
 utils.tracking = {};
 
+//arrows that have been shot, to be recovered.
 utils.tracking.arrows = 0;
+//tracking things that have happened this turn.
+utils.tracking.turn = {
+	damage: []
+};
+
+//sources of advantage and disadvantage
 utils.tracking.advantage    = [];
 utils.tracking.disadvantage = [];
-utils.tracking.damage    = {};
 
 utils.sounds = {};
 

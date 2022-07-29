@@ -1,10 +1,8 @@
-const saved = game.saved_macro;
-const utils = saved.utils;
-const track = saved.tracking;
+const tracking = utils.tracking;
 const lucky = utils.getItemByName("lucky");
 const labels = lucky.labels;
 
-if (track.lucky) {
+if (tracking.lucky) {
 	Dialog.prompt({
 		title: "Lucky Prompt",
 		content: "You already have a use of Lucky!",

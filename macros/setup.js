@@ -1,25 +1,13 @@
-if (!window.utils) {
-	//monkeypatch that returns 'Title Cased' text.
-	String.prototype.toTitleCase = function() {
-		let upper = true;
-		let str   = "";
-		
-		for (let i = 0, l = this.length; i < l; i++) {
-			const chr = this[i];
-			if (chr == " ") {
-				upper = true;
-				str  += chr;
-			} else {
-				str  += upper ? chr.toUpperCase() : chr.toLowerCase();
-				upper = false;
-			}
-		}
+const utils = {};
 
-		return str;
-	}
+utils.macro_setup = window.macro_setup;
 
-	//monkeypatch that allows you to .length Objects to see if they have any key value pairs.
-	//only inlcudes keys visible using Object.keys
+if (!utils.macro_setup) {
+	/**
+     * Takes an object, and returns a number specifying how many key/value pairs are contained in the object.
+	 * 
+	 * @returns {number} The amount of items in the object.
+     */
 	Object.defineProperty(Object.prototype, "length", {
 		get() { return Object.keys(this).length; },
 		set() { },
@@ -27,7 +15,11 @@ if (!window.utils) {
 		writeable: false
 	});
 
-	//monkeypatch that will randomly return a value from an array
+	/**
+     * Takes an array, and returns a random single item from the array.
+	 * 
+	 * @returns {any} A random item from the array.
+     */
 	Object.defineProperty(Array.prototype, "random", {
 		get() { return this[Math.floor(Math.random() * this.length)]; },
 		set() { },
@@ -35,46 +27,215 @@ if (!window.utils) {
 		writeable: false
 	})
 
-	//monkeypatch that will randomly return a value from an object
+	/**
+     * Takes an object, and returns a random single value from the object.
+	 * 
+	 * @returns {any} A random value from the object.
+     */
 	Object.defineProperty(Object.prototype, "random", {
 		get() { return this[Object.keys(this).random]; },
 		set() { },
 		enumerable: false,
 		writeable: false
-	})
-} else {
-	delete window.utils;
+	});
+
+	/**
+     * Take a number, and map it from one range to another. So if your initial range was 1 - 4, and your new range
+	 * was 4 - 40, and the input number was 2, then your new number is 22, since 2 is half way between 1 and 4, and
+	 * 22 is half way between 4 and 40.
+	 * 
+	 * @param {number} from_min The minimum of the initial range.
+	 * @param {number} from_max The maximum of the initial range.
+	 * @param {number} to_min The minimum of the new range.
+	 * @param {number} to_max The maximum of the new range.
+	 * 
+	 * @returns {number} The new number, mapped from the initial range to the new range.
+     */
+	Object.defineProperty(Number.prototype, "map", { value: function(from_min, from_max, to_min, to_max) {
+		return (this - from_min) * (to_max - to_min) / (from_max - from_min) + to_min;
+	}});
+
+	/**
+     * Takes a string, and returns that string with the first character near a space with an uppercase version of it.
+	 * 
+	 * For example, the sentence `hello world` would become `Hello World`.
+	 * 
+	 * @returns {string} The titlecased string.
+     */
+	Object.defineProperty(String.prototype, "toTitleCase", { value: function() {
+		return this.split(" ").map(val => `${val.slice(0, 1).toUpperCase()}${val.slice(1)}`).join(" ");
+	}});
+
+	/**
+     * Returns the portion of a string after the search part of the string. If the search doesn't exist in
+	 * the initial string, returns an empty string.
+	 * 
+	 * @param {string} search The string to search for.
+	 * 
+	 * @returns {string} The new portion of string.
+     */
+	Object.defineProperty(String.prototype, "after", { value: function(search) {
+		return this.split(search)[1];
+	}});
+
+	/**
+     * Returns the portion of a string before the search part of the string. If the search doesn't exist in
+	 * the initial string, returns an empty string.
+	 *
+	 * @param {string} search The string to search for.
+	 * 
+	 * @returns {string} The new portion of string.
+     */
+	Object.defineProperty(String.prototype, "before", { value: function(search) {
+		const arr = this.split(search);
+
+		return arr[0] === this ? undefined : arr[0];
+	}});
+
+	/**
+     * Returns the initial array, with any duplicates removed.
+	 * 
+	 * @returns {array} The deduplicated array.
+     */
+	Object.defineProperty(Array.prototype, "deduplicate", { value: function() {
+		const set = new Set();
+
+		for (const value of this) {
+			set.add(value);
+		}
+
+		return Array.from(set);
+	}});
 }
 
-window.utils = {};
+/**
+ * The pronoun object returned from the `pronouns` getter on a `Character` instance.
+ * 
+ * @typedef  {object} pronouns
+ * @property {string} themselves
+ * @property {string} theirs
+ * @property {string} their
+ * @property {string} they
+ * @property {string} them
+ */
 
-//Returns a rejection, so that rejections can be passed all the way
-//down the promise chain.
-utils.reject = (value) => Promise.reject(value);
+/**
+ * The rechargeResults object returned from the `recharge` method on a `Item` instance.
+ * 
+ * @typedef  {object} rechargeResults
+ * @property {CustomRoll} roll The `CustomRoll` instance that has already been rolled with the recharge method.
+ * @property {Message} message The `Message` instance that was built from the `CustomRoll` instance, and has not been displayed.
+ */
 
-//gets an item from a character, or from the local character, by name. Takes
-//names like wooden_sword as well as Wooden Sword
-utils.getItemByName = (item_name, character) => {	
-	const name = utils.simpleName(item_name);
+/**
+ * Run a function, and if it's true, resolve the promise. If false, then wait's 0ms, i.e., run in the next
+ * iteration of the event loop. If there's a timeout, then it will only wait until that amount of milliseconds
+ * maximum, then will resolve and return `false`.
+ * 
+ * @param {function} func The function you want to run. If the function returns `true`, then will resolve the Promise. If it returns anything else, then will run the function again on the next loop.
+ * @param {number} timeout The amount of milliseconds before the waitUntil function is forcibly resolved as `false`. If not provided, the waitUntil function will run infinitely.
+ * 
+ * @returns {Promise<boolean>} A Promise that resolves after `func` returns true.
+ */
+async function waitUntil(func, timeout) {
+    let start_time = Date.now();
 
-	for (const item of [...(character ?? game.user.character).data.items.values()]) {
-		if (utils.simpleName(item.name) === name) { return item; }
-	}
+    function wrapper(done) {
+        if (timeout && Date.now() - start_time >= timeout) done(false);
+        if (func()) done(true);
+
+        setTimeout(wrapper, 0, done);
+    }
+
+    return new Promise(done => {
+        setTimeout(wrapper, 0, done);
+    });
 }
 
-//vaidates if a string is a valid Font Awesome Icon
-utils.validateFA = icon => {
-	//look through styles sheets
+/**
+ * Waits a certain amount of time before resolving a Promise.
+ * 
+ * @param {number} ms The amount of millseconds before the Promise resolves. By default is 0 milliseconds.
+ * 
+ * @returns {Promise<undefined>} A Promise that resolves after `ms` millseconds.
+ */
+async function wait(ms) {
+    return new Promise(done => { setTimeout(done, ms || 0); });
+}
+
+/**
+ * AudioHelper helper; makes playing a sound even easier with intelligent defaults, and returns the sound instance to be manipulated.
+ * 
+ * @param {string} src A URI that points towards a valid sound file. May run into CORS issues when pointed to off-server audio content.
+ * @param {number} volume A number between 0 and 1, corresponding to the percentage the sound should be played at. 0 is no sound, while 1 is at maximum volume.
+ * @param {boolean} autoplay If true, plays the sound immediately after loading. Otherwise, the sound instance that was returned will need to be manually triggered.
+ * @param {boolean} loop If true, will loop the sound after ending. You will need to use the returned sound instance to stop the sound from playing.
+ * @param {boolean} send If true, will send the sound to everyone else and play it for them as well.
+ * 
+ * @returns {Sound} A Foundary sound instance.
+ */
+async function playSound(src, volume = 0.8, autoplay = true, loop = false, send = true) {
+	const sound = await AudioHelper.play({ src, volume, autoplay, loop }, send);
+	
+	//some sounds are so short, that by the time we get the sound instance
+	//they're already done playing. If they're playing, we schedule, but if
+	//not, just return the sound directly.
+	if (sound.isPlaying) return sound.schedule(_ => sound, sound.duration);
+
+	return sound;
+}
+
+/**
+ * Takes an object, and dumps all the key/value pairs into another object. Generally used to
+ * take an object and place it into the window/global space.
+ * 
+ * @param {object} obj The object you want to copy into another.
+ * @param {object} dump The object you want to copy into. If none is specified, defaults to `window`.
+ */
+function pollute(obj, dump) {
+	const space = dump || window;
+
+	for (const [key, value] of Object.entries(obj)) space[key] = value;
+}
+
+/**
+ * Searches through an ActorDirectory to find an Actor by name.
+ * 
+ * @param {ActorDirectory} dir The directory to search through.
+ * @param {string} name The name of the Actor you're searching for. Non case-sensitive, and ignores non alphanumeric characters.
+ * 
+ * @returns {Actor|null} Returns the Actor, if one is found.
+ */
+function searchDirectory(dir, name) {
+	if (dir === undefined)                                     throw new Error("'dir' was not specified.");
+	if (!dir.reduce)                                           throw new Error("'dir' is missing a 'reduce' function.");
+	if (!(typeof name === "string" || name instanceof String)) throw new Error("'name' is not a string.");
+
+	const regex = /[^\w\d]/ig;
+
+	name = name.toLowerCase().replaceAll(regex, "");
+
+	return dir.reduce((a, b) => { if (b.name.replaceAll(regex, "").toLowerCase() === name) { return b; } return a; });
+}
+
+/**
+ * Checks if a string is a valid Font Awesome Icon that can be used.
+ * 
+ * @param {string} icon The icon name to look for in stylesheets.
+ * 
+ * @returns {boolean}
+ */
+function validateFontAwesome(icon) {
+	//look through styles sheets...
 	for (const sheet of [...document.styleSheets]) {
 		//when we find the fontawesome one...
 		if (sheet?.href?.includes?.("fontawesome")) {
 			//look at all the rules...
 			for (const rule of [...sheet.cssRules]) {
 				//if it's a stylerule, and if the selectorText matches the attempted icon...
-				if (rule.constructor.name == "CSSStyleRule" && rule.selectorText.match(`fa-${icon}::before`)) {
-					return true;
-				}
+				if (rule.constructor.name === "CSSStyleRule" && rule.selectorText.match(`fa-${icon}::before`)) return true;
 			}
+
 			//once we found the fa sheet, we don't need to keep looking.
 			break;
 		}
@@ -83,116 +244,386 @@ utils.validateFA = icon => {
 	return false;
 }
 
-//Helper for the helper. Plays a sound with intelligent defaults, and returns a promise
-//that fires when the sound is done playing. returns the sound object that was playing.
-utils.playSound = (src, volume = 0.8, autoplay = true, loop = false, send = false) => {
-	if (!src) {
-		ui.notifications.warn("No sound was given to playSound.");
-		return;
- 	}
-
-	return AudioHelper.play({ src, volume, autoplay, loop }, send)
-		.then(sound => {
-			//some sounds are so short, that by the time we get the sound instance
-			//they're already done playing. If they're playing, we schedule, but if
-			//not, just return the sound directly.
-			if (sound.isPlaying) { return sound.schedule(_ => sound, sound.duration); }
-			return sound;
-		});
-}
-
-//takes a name like 'Wooden Sword' and returns 'wooden_sword'
-utils.simpleName = item_name => item_name.replaceAll(" ", "_").toLowerCase();
-
-//takes a name like 'wooden_sword' and returns 'Wooden Sword'
-utils.fancyName  = item_name => item_name.replaceAll("_", " ").toTitleCase();
-
-//creates a prompt for rerolling via the lucky feat. takes two callbacks,
-//which are called when the prompt is answered yes or no.
-utils.luckyPrompt = (yes, no) => {
-	new Dialog({
-		title: "Lucky",
-		content: "Is this a reroll for the Lucky feat?",
-		buttons: {
-			yes: { icon: '<i class="fas fa-check"></i>', label: "Yes", callback: yes },
-			no:  { icon: '<i class="fas fa-times"></i>', label: "No", callback: no   }
-		}
-	}).render(true);
-}
-
-//helper function that returns an array of pronouns, based on a character's gender,
-//as determined by their character sheet. Very simple, only returns masc, fem, or neutral pronouns. 
-utils.getPronouns = character => {
-	const gender = (character ?? game.user.character).data.data.details.gender.toLowerCase();
-	return !!({ female: true, girl: true, gal: true, woman: true, f: true, fem: true, ["she/her"]: true })[gender] ? ["she", "her", "herself", "hers", "her"] :
-		   !!({ male: true, boy: true, guy: true, man: true, m: true, masc: true, ["he/him"]: true })[gender]      ? ["he", "him", "himself", "his", "his"]   : 
-		   																											 ["they", "them", "themselves", "theirs", "their"];
-}
-
-function changeQuantity(item, amount, type) {
-	let total = 0;
-
-	if (typeof item == "string") {
-		const i = utils.getItemByName(item);
-
-		if (!i) { 
-			ui.notifications.error(`Utils | Failed to find an item by the name ${item}`);
-			return;
-		}
-
-		item = i;
-	}
+/**
+ * Display a warning message on the screen where the user can see. Automatically attaches `Macro Utilities | ` in front of the message.
+ * 
+ * @param {string} message The message you wish to display. If no message is provided, defaults to `Warning!`.
+ * @param {boolean} permanent Whether the warning should stay permanently displayed until dismissed.
+ */
+function warn(message, permanent = false) {
+	if (!(typeof message === "string" || message instanceof String) || message === "") message = "Warning!";
 	
-	if (item?.data?.data?.quantity === undefined) {
-		ui.notifications.error(`Utils | ${item.name} does not have a quantity to change.`);
-		return;
-	}
+	permanent = !!permanent;
 
-	if (typeof amount !== "number") {
-		ui.notifications.error(`Utils | ${amount} is not a numeric value to ${type} quantity ${type === "set" ? "to" : "by"}.`);
-		return;
-	}
-	
-	if (type == "decrease" && item.data.data.quantity - amount <= 0) {
-		ui.notifications.warn(`Utils | Subtracting ${amount} ${item.name} will put you under zero quantity. This should be accounted for. Setting quantity to zero...`);
-		amount = item.data.data.quantity;
-	}
-
-	if (type == "set" && amount < 0) {
-		ui.notifications.warn(`Utils | ${amount} is less than zero. This should be handled. Setting quantity to zero...`);
-		amount = 0;
-	}
-
-	if (type == "increase") { total = item.data.data.quantity + amount; }
-	if (type == "decrease") { total = item.data.data.quantity - amount; }
-	if (type == "set")      { total = amount; }
-
-	item.update({ "data.quantity": total });
+	ui.notifications.notify(`Macro Utilities | ${message}`, "warning", { permanent });
 }
 
-//increase the quantity of an item.
-utils.increaseItemQuantity = (item, amount) => {
-	changeQuantity(item, amount, "increase");
+/**
+ * Display an error message on the screen where the user can see. Automatically attaches `Macro Utilities | ` in front of the message.
+ * 
+ * @param {string} message The message you wish to display. If no message is provided, defaults to `Error!`.
+ * @param {boolean} permanent Whether the error should stay permanently displayed until dismissed.
+ */
+function error(message, permanent = false) {
+	if (!(typeof message === "string" || message instanceof String) || message === "") message = "Error!";
+
+	permanent = !!permanent;
+
+	ui.notifications.notify(`Macro Utilities | ${message}`, "error", { permanent });
 }
 
-//decrease thr quantity of an item.
-utils.decreaseItemQuantity = (item, amount) => {
-	changeQuantity(item, amount, "decrease");
+/**
+ * Display an info message on the screen where the user can see. Automatically attaches `Macro Utilities | ` in front of the message.
+ * 
+ * @param {string} message The message you wish to display. If no message is provided, defaults to `Info!`.
+ * @param {boolean} permanent Whether the info should stay permanently displayed until dismissed.
+ */
+function info(message, permanent = false) {
+	if (!(typeof message === "string" || message instanceof String) || message === "") message = "Error!";
+
+	permanent = !!permanent;
+
+	ui.notifications.notify(`Macro Utilities | ${message}`, "info", { permanent });
 }
 
-//set the quantity of an item.
-utils.setItemQuantity = (item, amount) => {
-	changeQuantity(item, amount, "set");
+/**
+ * If the initial value is `false`, then the message is displayed, and a `MacroError`
+ * is thrown with the same message. `if_false` is explicitly checked for either `undefined`,
+ * `false` or `null`. Other falsey values, such as `""`, `0`, and `NaN` do not count
+ * as false.
+ * 
+ * @param {boolean} if_false If this value is false, throws an error and displays a message, otherwise this function does nothing.
+ * @param {string} message The message to be displayed, and the message used in the `MacroError`. Whatever the message, it is appended with `Macro Utilities | `.
+ * @param {function} type The type of notification pop up can be changed by passing in either the `error`, `warn` or `info` function.
+ * @param {boolean} permanent Whether the info should stay permanently displayed until dismissed.
+ */
+function assert(if_false, message = "Error!", type = error, permanent = false) {
+	if (!(if_false === false || if_false === undefined || if_false === null)) return;
+	if (!(type === error || type === warn || type === info)) type = error;
+
+	type(message, permanent);
+
+	throw new MacroError(message);
 }
 
-//returns a global uuid, in the format of '94f87472-e276-6d50-71e5-880e3ca6675e'
-utils.uuid = _ => {
+/**
+ * Generate's a uuid, in the format "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx", where `x` is an alpha-numeric character, all lowercase.
+ * 
+ * @returns {string} The uuid string.
+ */
+function generateUUID() {
 	function f(s) {
 		let p = (Math.random().toString(16) + "000000000").substr(2, 8);
 		return s ? "-" + p.substr(0, 4) + "-" + p.substr(4, 4) : p;
 	}
 
 	return f() + f(true) + f(true) + f();
+}
+
+/**
+ * The class used generally for extending custom errors. Can not be called on it's own,
+ * but takes all values passed (rather than just a single value like the vanilla `Error` does),
+ * and also has a toString that contains both the name and message of the error instance.
+ */
+ class CustomError extends Error {	
+    constructor(...message) {
+        super(...message);
+
+        if (this instanceof AbstractError) throw new AbstractError("Unable to instantiate the 'AbstractError' class directly.");
+        if (this instanceof CustomError)   throw new AbstractError("Unable to instantiate the 'CustomError' class directly.");
+
+		this.name = "custom_error";
+    }
+
+	get name() { return this.#name; }
+
+    toString() { return `[<${this.name}> ${this.message}]`; }
+}
+
+/**
+ * Error for when you try to instansiate something that isn't meant to be instansiate.
+ * Not actually abstract itself.
+ */
+class AbstractError extends CustomError {
+    constructor(m = "This is an abstract class, and can not be instantiated directly.", ...essage) {
+        super(m, ...essage);
+
+        this.name = "abstract_error";
+    }
+}
+
+/**
+ * Error for when anything goes wrong in the `Macro Utils` macro. Used internally in `assert`.
+ */
+class MacroError extends CustomError {
+	constructor(m = "Something in Macro Utilities has failed.", ...essage) {
+        super(m, ...essage);
+
+        this.name = "macro_error";
+    }
+}
+
+
+/**
+ * Wrapper class for handling Actor5e characters.
+ */
+class Character {
+	#actor;
+
+	/**
+	 * Gets an item that the character owns by name.
+	 * 
+	 * @param {string} character_name The actor name to search by. If one is not provided, uses the user's main character, as determined by `game.user.character.name`.
+	 * 
+	 * @returns {Character} An instance of the character class.
+	 */
+	constructor(character_name) {
+		let name = character_name || game?.user?.character?.name;
+		    name = name.trim();
+		    name = name === "" ? undefined : name;
+
+		if (name === undefined) throw new Error("Name was not specified, and user does not have a character.");
+
+		this.#actor = searchDirectory(game.actors, name);
+
+		if (this.#actor === undefined) throw new Error(`No actor was found with the name '${name}'.`);
+	}
+
+	/**
+	 * Gets an item that the character owns by name.
+	 * 
+	 * @param {string} item_name The item's name to search by. Non case sensitive, and ignores spaces.
+	 * 
+	 * @returns {Item|null} Returns either the item, if the character owns it, or null if one is not found.
+	 */
+	get(item_name) {
+		const name = (item_name || "").trim(" ", "").toLowerCase();
+
+		for (const item of [...character.data.items.values()]) {
+			if (item.name.trim(" ", "").toLowerCase() === name) return new Item(item);
+		}
+	}
+
+	/**
+	 * An object of pronouns based on the gender on the character sheet. Defaults to neutral pronouns if no gender is found, or otherwise can not be determined.
+	 * 
+	 * @returns {pronouns} Returns an object with neutral pronouns as keys, and assumed pronouns as values.
+	 */
+	get pronouns() {
+		const gender = (this.#actor?.data?.data?.details?.gender || "").toLowerCase();
+
+		const fem = {
+			themselves: "herself",
+			theirs: "hers",
+			their: "her",
+			they: "she",
+			them: "her"
+		};
+
+		const masc = {
+			themselves: "hisself",
+			theirs: "his",
+			their: "his",
+			they: "he",
+			them: "him"
+		};
+
+		const neutral = {
+			themselves: "themselves",
+			theirs: "theirs",
+			their: "their",
+			they: "they",
+			them: "them"
+		};
+
+		if (gender.includes("she/her")) return fem;
+		if (gender.includes("female"))  return fem;
+		if (gender.includes("woman"))   return fem;
+		if (gender.includes("girl"))    return fem;
+		if (gender.includes("gal"))     return fem;
+		if (gender.includes("fem"))     return fem;
+		if (gender === "f")             return fem;
+
+		if (gender.includes("he/him")) return masc;
+		if (gender.includes("male"))   return masc;
+		if (gender.includes("masc"))   return masc;
+		if (gender.includes("boy"))    return masc;
+		if (gender.includes("guy"))    return masc;
+		if (gender.includes("man"))    return masc;
+		if (gender === "m")            return masc;
+
+		return neutral;
+	}
+
+	/**
+	 * Returns all items owned by the character.
+	 * 
+	 * @returns {Items[]} An array of `Item` instances.
+	 */
+	get items() {
+		const results = [];
+
+		for (const item of [...character.data.items.values()]) results[results.length] = new Item(item); 
+
+		return results;
+	}
+}
+
+/**
+ * Wrapper class for handling Item5e items.
+ */
+class Item {
+	#item;
+
+	/**
+	 * Takes an `Item5e` instance, and returns an `Item` instance, that has helper functions for updating values across the server.
+	 * 
+	 * @param {Item5e} item The `Item5e` instance. Validates by checking the constructor name of the `raw_item`.
+	 * 
+	 * @returns {Item} The `Item` instance.
+	 */
+	constructor(item) {
+		assert(item.constructor.name === "Item5e", "Failed to build Item instance; 'item' is not an Item5e instance.");
+		
+		this.#item = item;
+	}
+
+	/**
+	 * Uses `system.uses.recovery` to build a `CustomRoll`, and displays a `CustomDialog`. If the dialog
+	 * is not cancelled, then return a rolled `CustomRoll` instance using the item's recovery formula,
+	 * along with the `Message` instance it generates.
+	 * 
+	 * @param {string=} title The title of the `CustomDialog` instance. If not provided, uses the item's name.
+	 * @param {string=} content The content of the `CustomDialog` instance. If not provided, uses a simple message with an inline link to the item.
+	 * 
+	 * @returns {rechargeResults=} An object containing the `Message` and `CustomRoll` instance.
+	 */
+	async recharge(title, content) {
+		const roll    = new CustomRoll(this.recovery);
+		const message = await roll.roll();
+
+		message.header_content = this.name;
+		message.card_content   = this.chat_description;
+		message.header_image   = this.image;
+		
+		const response = await CustomDialog.ok(
+			title   || `Recharge ${this.name.toTitleCase()}`,
+			content || `<p>You're about to recharge your ${this.link}!</p>`);
+
+		if (!response) return;
+
+		return { message, roll };
+	}
+
+	/**
+	 * A URI pointing to the image used for this item.
+	 * 
+	 * @returns {string}
+	 */
+	get image() {
+		return this.#item.img;
+	}
+
+	/**
+	 * The description of the item.
+	 * 
+	 * @returns {string}
+	 */
+	get description() {
+		return this.#item.system.description.value;
+	}
+
+	/**
+	 * The recovery formula of the item.
+	 * 
+	 * @returns {string}
+	 */
+	get recovery() {
+		return this.#item.system.uses.recovery;
+	}
+
+	/**
+	 * The quantity of the item.
+	 * 
+	 * @returns {number}
+	 */
+	get quantity() {
+		return this.#item.system.quantity;
+	}
+
+	/**
+	 * The charges/uses of the item.
+	 * 
+	 * @returns {number}
+	 */
+	get charges() {
+		return this.#item.system.uses.value;
+	}
+
+	/**
+	 * The maximum charges/uses of the item.
+	 * 
+	 * @returns {number}
+	 */
+	 get max_charges() {
+		return this.#item.system.uses.max;
+	}
+
+	/**
+	 * Returns the chat ID, which, when parsed, gives a clickable that opens up the item ingame.
+	 * 
+	 * @returns {string}
+	 */
+	get chat_id() {
+		return this.#item.link;
+	}
+
+	/**
+	 * The name of the item.
+	 * 
+	 * @returns {string}
+	 */
+	get name() {
+		return this.#item.name;
+	}
+
+	/**
+	 * The raw html link to the linked item. This is similar to `chat_id`, but does the parsing internally, and may not be 100% accurate to the chat_id process.
+	 * 
+	 * @returns {string}
+	 */
+	get link() {
+		return `<a class="content-link" draggable="true" data-uuid="${this.chat_id.split("@UUID").pop().before("]").after("[")}" data-id="${this.#item.id}" data-type="Item" data-tooltip="${this.#item.type.toTitleCase()} Item"><i class="fas fa-suitcase"></i>${this.name}</a>`
+	}
+
+	/**
+	 * Sets the charges/uses of the item, using the update method to send that info to the server as well.
+	 * Normally, you want to use the `recharge` method, which uses the `recovery` roll data to build a roll.
+	 * Will clamp the value between 0, and the maximum.
+	 * 
+	 * @param {number} value Will post an error if the value is not a number.
+	 */
+	set charges(value) {
+		if (typeof value !== "number") value = Number(value);
+		if (typeof value !== "number") error(`Unable to change '${this.name}' charges; '${value}' is not of type 'number'.`);
+		if (value === NaN)             error(`Unable to change '${this.name}' charges; '${value}' can not be converted to 'number'.`);
+
+		this.#item.update({ "system.uses.value": Math.min(this.#item.system.uses.max, Math.max(value, 0)) });
+	}
+
+	/**
+	 * Sets the quantity of the item, using the update method to send that info to the server as well.
+	 * Will clamp the value so as to not go below 0.
+	 * 
+	 * @param {number} value Will post an error if the value is not a number.
+	 */
+	set quantity(value) {
+		if (typeof value !== "number") value = Number(value);
+		if (typeof value !== "number") error(`Unable to change '${this.name}' quantity; '${value}' is not of type 'number'.`);
+		if (value === NaN)             error(`Unable to change '${this.name}' quantity; '${value}' can not be converted to 'number'.`);
+
+		this.#item.update({ "system.quantity": Math.max(value, 0) });
+	}
 }
 
 //flavor goes above content, but below the senders name. Usually used as a title, if the header isn't being used.
@@ -348,7 +779,7 @@ class Message {
 				die_data.special = ({ max: "max", min: "min", discarded: "discarded", crit: "max", fail: "min", unused: "discarded" })[die.special];
 			} else if (Number(die_data.value) != NaN) {
 				if (die_data.value == die_data.size) { die_data.special = "max"; }
-				if (die_data.value == 1) { die_data.special = "min"; }
+				if (die_data.value == 1)             { die_data.special = "min"; }
 			}
 
 			data.dice[data.dice.length] = die_data;
@@ -518,37 +949,20 @@ class Message {
 //The "title" is actually just the formula part, but you don't need to write 2d6 and then also show 2 d6s,
 //so instead that space can be used for something more informational.
 class CustomRoll {
-	#item;
-	#formula = "";
+	#roll;
+	#formula;
 
-	constructor(item) {
-		if (typeof item == "string") {
-			const str = item;
-
-			item = utils.getItemByName(item);
-
-			if (!item) {
-				ui.notifications.error(`'${str}' is not a valid item for '${game.user.character.name}'.`);
-				return;
-			}
-		}
-
-		if (!item) {
-			ui.notifications.error(`Failed to pass an item or item name to the utils.Roll class.`);
-			return;
-		}
-
-		if (!(item instanceof Item)) {
-			ui.notifications.error(`'${item}' is not a valid Item.`);
-			return;
-		}
-
-		this.#item = item;
+	constructor(formula) {
+		this.#formula = formula;
 	}
+	
+	get total() { return this.#roll.total; }
+
+	get result() { return this.#roll.total; }
 
 	get formula() { return this.#formula; }
 
-	set formula(x) { console.warn("You can not set the formula of a roll directly."); }
+	set formula(x) { this.#formula = x; }
 
 	#operation(op, term, label, title) {
 		if (this.#formula.length > 0) { this.#formula += ` ${op} `; }
@@ -560,11 +974,11 @@ class CustomRoll {
 
 	//adds a term, with an optional label and title. The first term, regardless of 
 	//operation, won't have an operator precede it.
-	add(term, label, title) { return this.#operation("+", term, label, title); }
+	add(term, label, title)      { return this.#operation("+", term, label, title); }
 
 	subtract(term, label, title) { return this.#operation("-", term, label, title); }
 
-	divide(term, label, title) { return this.#operation("/", term, label, title); }
+	divide(term, label, title)   { return this.#operation("/", term, label, title); }
 
 	multiply(term, label, title) { return this.#operation("*", term, label, title); }
 
@@ -585,19 +999,19 @@ class CustomRoll {
 	}
 
 	maybeSubtract(if_true, term, label, title) {
-		if (if_true) { this.subtract(term, label, title); }
+		if (if_true) this.subtract(term, label, title);
 		
 		return this;
 	}
 
 	maybeDivide(if_true, term, label, title) {
-		if (if_true) { this.divide(term, label, title); }
+		if (if_true) this.divide(term, label, title);
 		
 		return this;
 	}
 
 	maybeMultiply(if_true, term, label, title) {
-		if (if_true) { this.multiply(term, label, title); }
+		if (if_true) this.multiply(term, label, title);
 		
 		return this;
 	}
@@ -609,10 +1023,11 @@ class CustomRoll {
 			const name    = term.constructor.name;
 			const formula = term.formula;
 
-			if (name == "ParentheticalTerm") { arr = iterate(new Roll(term.term), arr); }
+			if (name == "ParentheticalTerm") arr = this.#iterate(new Roll(term.term), arr);
 
 			//add term to result array if the constructor is 'Die'
-			if (name == "Die") { arr[arr.length] = term; }
+			if (name == "Die") arr[arr.length] = term;
+
 			//but only add a numeric term if it's labeled. If there's no label then there's no point in adding it
 			//since we are really only adding it below for labeling purposes
 			if (name == "NumericTerm" && (formula.includes("{") || formula.includes("["))) {
@@ -632,7 +1047,7 @@ class CustomRoll {
 	//The function to use once we get the html from the nested promises.
 	#buildRoll(real_roll, html) {
 		const roll    = new Roll(this.#formula);
-		const message = new utils.Message();
+		const message = new Message();
 		const total   = html.match(/<h4 class="dice-total(.*?)">(\d+)<\/h4>/);
 
 		//remove labels and only display math
@@ -732,13 +1147,10 @@ class CustomRoll {
 	}
 
 	//rolls the formula, and returns the result as a chat message.
-	roll(maybe) {
-		if (maybe === false) { return false; }
+	async roll(maybe) {
+		if (maybe === false) return false;
 		
-		if (this.#formula.length == 0) {
-			ui.notifications.warn("Utils | Tried to roll an empty formula.");
-			return;
-		}
+		assert(this.#formula.length === 0, "Tried to roll an empty formula.", warn);
 
 		//hide titles in the labels so it's parsed by foundry's roll class
 		//first, we wrap any squiggly brackets in square brackets
@@ -748,14 +1160,17 @@ class CustomRoll {
 		//make a roll using the formula, then turn into into a message
 		//then get the html from that message (not everything needs to be
 		//async foundry)
-		return new Roll(this.#formula)
-		.roll({async: true})
-		.then(roll => roll.toMessage(null, {create: false})
-				.then(data => new ChatMessage(data).getHTML())
-				.then(html => this.#buildRoll(roll, html[0].outerHTML))
-				.then(msg  => msg.setHeaderImage(this.#item.data.img)
-								.setHeaderContent(this.#item.data.name)
-								.setCardContent(this.#item.data.data.description.chat)))
+		const roll   = new Roll(this.#formula);
+		const result = await roll.roll({ async: true });
+		const data   = await roll.toMessage(null, { create: false });
+
+		const chat = new ChatMessage(data);
+		const html = await chat.getHTML();
+		const msg  = this.#buildRoll(roll, html[0].outerHTML);
+
+		this.#roll = roll;
+
+		return msg;
 	}
 }
 
@@ -771,10 +1186,15 @@ class Advantage {
 	//mutates an array, removing all advantage objects that are expired. ignores anything that
 	//isn't an instance of Advantage.
 	static expire(array) {
-		if (!Array.isArray(array)) { return; }
+		const result = [];
 
+		if (!Array.isArray(array)) return;
+
+		for (const advantage of array) {
+			if (advantage instanceof Advantage && advantage.expired) 
+		}
 		for (let i = 0; i < array.length; i++) {
-			if (array[i] instanceof utils.Advantage) {
+			if (array[i] instanceof Advantage) {
 				if (array[i].expired()) { array.splice(i, 1); }
 			}
 		}
@@ -785,7 +1205,7 @@ class Advantage {
 	//Helper function that takes a pool of vantage sources, and returns an object with info
 	//based on all pooled sources.
 	static pool(array) {
-		if (array === false) { return false; }
+		if (array === false) return false;
 
 		if (array.length == 0) { return { state: 0, label: "", formula: "1d20" }; }
 
@@ -830,14 +1250,14 @@ class Advantage {
 	//returns a promise, that either waits for a dialog to finish, and gives the an array of vantage sources (can be empty),
 	//or simply returns null if the dialog was closed without choosing anything.
 	static async check(maybe) {
-		if (maybe === false) { return false; }
+		if (maybe === false) return false;
 
 		const tracking = utils.tracking;
 		const sources  = [];
 
 		//expire all old vantages
-		utils.Advantage.expire(tracking.advantage);
-		utils.Advantage.expire(tracking.disadvantage);
+		Advantage.expire(tracking.advantage);
+		Advantage.expire(tracking.disadvantage);
 
 		//add all sources of disadvantage to the pool, and tick each one as being used.
 		for (const disadvantage of tracking.disadvantage) {
@@ -861,12 +1281,12 @@ class Advantage {
 
 			//creates and returns a dialog that shows choices from the choices array
 			function choose(another) {
-				const dialog = new utils.Dialog("Advantage Sources", `Choose a${another ? "nother" : ""} source of advantage.`);
+				const dialog = new CustomDialog("Advantage Sources", `Choose a${another ? "nother" : ""} source of advantage.`);
 
 				for (const choice of choices) {
 					if (choice.in_use) { continue; }
 					
-					dialog.addButton(new utils.Button()
+					dialog.addButton(new CustomButton()
 						.setIcon(choice.icon)
 						.setText(choice.source)
 						.setCallback(_ => choice))
@@ -881,7 +1301,7 @@ class Advantage {
 
 				chosen.in_use = true;
 
-				if (result.length < amount) { return choose(true).show().then(handleChoice); }
+				if (result.length < amount) return choose(true).show().then(handleChoice);
 
 				return result;
 			}
@@ -893,7 +1313,7 @@ class Advantage {
 		//then, add a use key to any object that doesn't have one, and increment the value by one.
 		//finally, return the array.
 		function process(array) {	
-			if (array === null) { return null; }
+			if (array === null) return null;
 
 			return array.map(vantage => {
 				delete vantage.in_use;
@@ -907,21 +1327,21 @@ class Advantage {
 		}
 
 		if (has_disadvantage && advantage_amt > disadvantage_amt) {
-			return utils.Dialog.ok("Advantage",
+			return CustomDialog.ok("Advantage",
 				`You have ${disadvantage_amt} source${dis_plural} of disadvantage on you, 
 				and have ${advantage_amt} source${ad_plural} of advantage. Would you like 
 				to use your advantage${ad_plural}?`)
 				.then(choice => {
-					if (choice === null) { return null; }
+					if (choice === null) return null;
 
-					return new utils.Dialog()
+					return new CustomDialog()
 						.setTitle("Advantage")
 						.setContent(`Do you want to have advantage, or only remove your disadvantage?`)
-						.addButton(new utils.Button()
+						.addButton(new CustomButton()
 							.setIcon("plus")
 							.setText("Gain Advantage")
 							.setCallback(_ => true))
-						.addButton(new utils.Button()
+						.addButton(new CustomButton()
 							.setIcon("equals")
 							.setText("Remove Disadvantage")
 							.setCallback(_ => false))
@@ -929,7 +1349,7 @@ class Advantage {
 						.show();
 				})
 				.then(choice => {
-					if (choice === null) { return null; }
+					if (choice === null) return null;
 
 					//choice is implictly cast to 1 or 0
 					return callback(advantages, disadvantage_amt + choice, sources);
@@ -938,13 +1358,13 @@ class Advantage {
 		}
 
 		if (has_disadvantage && advantage_amt == disadvantage_amt) {
-			return utils.Dialog.prompt("Advantage",
+			return CustomDialog.prompt("Advantage",
 				`You have ${disadvantage_amt} source${dis_plural} of disadvantage on you, 
 				and have ${advantage_amt} source${ad_plural} of advantage. Would you like 
 				to use your advantage${ad_plural} to remove your disadvantage${dis_plural}?`)
 				.then(choice => {
-					if (choice === null)  { return null; }
-					if (choice === false) { return sources; }
+					if (choice === null)  return null;
+					if (choice === false) return sources;
 
 					return callback(advantages, disadvantage_amt, sources);
 				})
@@ -952,17 +1372,17 @@ class Advantage {
 		}
 
 		if (has_disadvantage && advantage_amt < disadvantage_amt) {
-			return utils.Dialog.ok("Advantage",
+			return CustomDialog.ok("Advantage",
 				`You have ${disadvantage_amt} source${dis_plural} of disadvantage on you, 
 				but have ${advantage_amt} source${ad_plural} of advantage. Using your 
 				advantage${ad_plural} won't help in this instance.`)
 		}
 
 		if (advantage_amt > 0) {
-			return utils.Dialog.prompt("Advantage",
+			return CustomDialog.prompt("Advantage",
 				`You have${advantage_amt == 1 ? " a " : " "}source${ad_plural} of advantage! Would you like to use ${advantage_amt == 1 ? "it" : "one"}?`)
 				.then(choice => {
-					if (choice === null) { return null; }
+					if (choice === null) return null;
 
 					return callback(advantages, 1, sources);
 				})
@@ -980,24 +1400,13 @@ class Advantage {
 	//class provides a static function called "expire", which you can pass in an object, and it will
 	//iterate over that object, removing all expired sources of advantage, and ignoring everything else.
 	constructor(advantage, source, icon = "check", expires) {
-		if (typeof advantage !== "boolean") {
-			ui.notifications.error("Advantage can only be true or false.");
-			return;
-		}
-
-		if (!source || typeof source !== "string") {
-			ui.notifications.error("Invalid source for advantage.");
-			return;
-		}
-
-		if (!expires || typeof expires !== "function") {
-			ui.notifications.error("Invalid expires function for advantage.");
-			return;
-		}
+		assert(typeof advantage === "boolean", "Advantage can only be true or false.");
+		assert(typeof expires === "function", "Invalid expires function for advantage.");
+		assert(typeof source === "string", "Invalid source for advantage.");
 
 		icon = icon.toString();
 
-		if (utils.validateFA(icon)) {
+		if (validateFontAwesome(icon)) {
 			this.#icon = icon;
 		} else {
 			console.warn(`'${icon}' is not a valid font awesome icon. Setting to checkmark default.`);
@@ -1010,28 +1419,24 @@ class Advantage {
 		this.#icon      = icon;
 	}
 
-	//Runs the expires function. If this function returns a truthy value, then the Advantage instance should be removed.
-	expired() { return this.#expires(this); }
+	get expired() { return this.#expires(this); }
 
 	get source() { return this.#source; }
-	
+
 	get icon() { return this.#icon; }
 
 	get advantage() { return this.#advantage; }
 
 	get disadvantage() { return !this.#advantage; }
 
-	set source(x) { console.warn("Advantage source is immutable. Rather than change the source, make a new instance."); }
-	
-	set icon(x) { console.warn("Advantage icon is immutable. Rather than change the icon, make a new instance."); }
-
-	set advantage(x) { console.warn("Advantage state is immutable. Rather than change the state, make a new instance."); }
-
-	set disadvantage(x) { console.warn("Advantage state is immutable. Rather than change the state, make a new instance."); }
+	set source(x)       { console.warn("Advantage source is immutable. Rather than change the source, make a new instance."); }
+	set icon(x)         { console.warn("Advantage icon is immutable. Rather than change the icon, make a new instance.");     }
+	set advantage(x)    { console.warn("Advantage state is immutable. Rather than change the state, make a new instance.");   }
+	set disadvantage(x) { console.warn("Advantage state is immutable. Rather than change the state, make a new instance.");   }
 }
 
 //Creates a dialog button, for use in the custom dialog class.
-class DialogButton {
+class CustomButton {
 	#key;
 	#icon;
 	#text;
@@ -1046,7 +1451,7 @@ class DialogButton {
 	//It's expected that you'd create one initially, but you can use the
 	//setter to do it as well. It doesn't have a helper method, however.
 	constructor(key) {
-		this.#key = key?.toString?.() ?? utils.uuid();
+		this.#key = key?.toString?.() ?? generateUUID();
 	}
 
 	set key(x) { this.#key = key.toString(); }
@@ -1072,7 +1477,7 @@ class DialogButton {
 	setIcon(icon) {
 		icon = icon.toString();
 
-		if (utils.validateFA(icon)) {
+		if (validateFontAwesome(icon)) {
 			this.#icon = icon;
 		} else {
 			console.warn(`'${icon}' is not a valid font awesome icon. Setting to checkmark default.`);
@@ -1094,10 +1499,7 @@ class DialogButton {
 	}
 
 	setCallback(callback) {
-		if (typeof callback != "function") {
-			ui.notifications.error("Utils | Failed to build button as passed callback was not a function.");
-			return;
-		}
+		assert(typeof callback === "function", "Failed to build button as passed callback was not a function.");
 
 		this.#callback = callback;
 
@@ -1113,7 +1515,7 @@ class DialogButton {
 		};
 	}
 
-	set object(x) { console.warn("Utils | Can not set object of button directly."); }
+	set object(x) { console.warn("Macro Utilities | Can not set object of button directly."); }
 }
 
 //Creates a dialog more seamlessly. After building a dialog, showing it returns a promise, that runs once
@@ -1129,11 +1531,11 @@ class CustomDialog {
 
 	//helper function that builds a simple dialog that has an okay button. All values are optional.
 	static ok(title, content, ok, close) {
-		ok    = ok    ?? utils.Button.yes;
+		ok    = ok    ?? CustomButton.yes;
 		close = close ?? ((_, r) => r("Prompt dialog closed."));
 
-		return new utils.Dialog(title, content)
-			.addButton(new utils.Button()
+		return new CustomDialog(title, content)
+			.addButton(new CustomButton()
 				.setIcon("check")
 				.setText("Ok")
 				.setCallback(ok))
@@ -1143,16 +1545,16 @@ class CustomDialog {
 
 	//helper function that builds a simple dialog with a yes and no button. All values are optional.
 	static prompt(title, content, yes, no, close) {
-		yes   = yes   ?? utils.Button.yes;
-		no    = no    ?? utils.Button.no;
+		yes   = yes   ?? CustomButton.yes;
+		no    = no    ?? CustomButton.no;
 		close = close ?? ((_, r) => r("Prompt dialog closed."));
 
-		return new utils.Dialog(title, content)
-			.addButton(new utils.Button()
+		return new CustomDialog(title, content)
+			.addButton(new CustomButton()
 				.setIcon("check")
 				.setText("Yes")
 				.setCallback(yes))
-			.addButton(new utils.Button()
+			.addButton(new CustomButton()
 				.setIcon("times")
 				.setText("No")
 				.setCallback(no))
@@ -1163,7 +1565,7 @@ class CustomDialog {
 	//Dialogs don't need a title and content, but they can be defined initially, or defined in
 	//one of the chaining functions
 	constructor(title = "", content = "") {
-		this.#title = title.toString();
+		this.#title   = title.toString();
 		this.#content = content.toString();
 	}
 
@@ -1176,7 +1578,7 @@ class CustomDialog {
 
 	get content() { return this.#content; }
 
-	set buttons(x) { console.warn("Utils | You can not set a buttons object directly. Use the add/removeButton methods."); }
+	set buttons(x) { console.warn("Macro Utilities | You can not set a buttons object directly. Use the add/removeButton methods."); }
 	
 	set title(x) { this.setTitle(x); }
 
@@ -1198,14 +1600,11 @@ class CustomDialog {
 	//takes an optional value that determines whether or not that button is considered the "default"
 	//option. The first button will always be considered default if one is not specified.
 	addButton(button, is_default) {
-		if (!(button instanceof utils.Button)) {
-			ui.notifications.error(`Utils | Failed to add '${button.toString()}' to Dialog as it's not a Button instance.`);
-			return;
-		}
+		assert(button instanceof CustomButton, `Failed to add '${button.toString()}' to Dialog as it's not a Button instance.`);
 
 		this.#buttons[button.key] = button;
 
-		if (is_default || this.#buttons.length == 1) { this.#default = button.text; }
+		if (is_default || this.#buttons.length == 1) this.#default = button.text;
 
 		return this;
 	}
@@ -1223,10 +1622,7 @@ class CustomDialog {
 
 	//The callback that runs when the dialog is closed.
 	onClose(callback) {
-		if (typeof callback != "function") {
-			ui.notifications.warn("Failed to build dialog as passed 'close' callback was not a function.");
-			return;
-		}
+		assert(typeof callback === "function", "Failed to build dialog as passed 'close' callback was not a function.", warn);
 
 		this.#close = callback;
 
@@ -1238,7 +1634,7 @@ class CustomDialog {
 	//notation to avoid errors.
 	async show(maybe) {
 		return new Promise((resolve, reject) => {
-			if (maybe === false) { return false; }
+			if (maybe === false) return false;
 
 			const data = {
 				title: this.#title,
@@ -1282,7 +1678,7 @@ class Damage {
 	#formula;
 
 	//Create a "damage" item that can be used for utils.Rolls
-	static item = utils.getItemByName("dagger").clone({ 
+	static item = game.collections.get("Item").contents[0].clone({ 
 		img: "https://www.jumpsplat120.com/assets/images/explosion.png",
 		name: "Damage",
 		permission: { default: 3 },
@@ -1299,7 +1695,7 @@ class Damage {
 	//final processing that might want to be done, such as dividing all the damage by 2. Hides the
 	//type in backticks and is removed in format, so if your item name has backticks, don't.
 	static pool(array) {
-		const roll = new utils.Roll(utils.Damage.item);
+		const roll = new CustomRoll(Damage.item);
 
 		for (const damage of array) {
 			roll.add(damage.formula, damage.info, `${damage.source.data.name}\`${damage.type}\``);
@@ -1367,7 +1763,7 @@ class Damage {
 		this.#info    = info;
 		this.#source  = source;
 		this.#formula = formula;
-		this.#uuid    = uuid ?? utils.uuid();
+		this.#uuid    = uuid ?? generateUUID();
 	}
 
 	get type() { return this.#type; }
@@ -1377,12 +1773,12 @@ class Damage {
 	get formula() { return this.#formula; }
 
 	get roll() {
-		const item = typeof this.#source == "string" ? utils.Damage.item : this.#source;
+		const item = typeof this.#source == "string" ? Damage.item : this.#source;
 
-		return new utils.Roll(item)
+		return new CustomRoll(item)
 			.add(this.#formula, this.#info, `${item.data.name}\`${this.#type}\``)
 			.roll()
-			.then(utils.Damage.format)
+			.then(Damage.format)
 	}
 
 	set type(x) { console.warn("Damage type is immutable. Rather than change the type, make a new instance."); }
@@ -1395,57 +1791,28 @@ class Damage {
 
 }
 
-//Message class for building a message.
-utils.Message = Message;
-
-//Roll class for building a better roll.
-utils.Roll = CustomRoll;
-
-//Advantage class for checking and working with advantage.
+utils.Item      = Item;
+utils.Damage    = Damage;
+utils.Message   = Message;
 utils.Advantage = Advantage;
+utils.Character = Character;
+utils.CustomRoll   = CustomRoll;
+utils.CustomDialog = CustomDialog;
+utils.CustomButton = CustomButton;
 
-//Button class for creating Dialog Buttons.
-utils.Button = DialogButton;
+utils.validateFontAwesome = validateFontAwesome;
+utils.searchDirectory     = searchDirectory;
+utils.generateUUID        = generateUUID;
+utils.waitUntil = waitUntil;
+utils.playSound = playSound;
+utils.pollute   = pollute;
+utils.error = error;
+utils.info  = info;
+utils.warn  = warn;
+utils.wait  = wait;
 
-//Dialog class for creating better dialogs.
-utils.Dialog = CustomDialog;
+utils.macro_setup = true;
 
-//Damage class for handling damage sources.
-utils.Damage = Damage;
+pollute(utils);
 
-utils.tracking = {};
-
-//arrows that have been shot, to be recovered.
-utils.tracking.arrows = 0;
-//tracking things that have happened this turn.
-utils.tracking.turn = {
-	damage: []
-};
-
-//sources of advantage and disadvantage
-utils.tracking.advantage    = [];
-utils.tracking.disadvantage = [];
-
-utils.sounds = {};
-
-utils.sounds.bruh = ["https://www.jumpsplat120.com/assets/sfx/misc/bruh.mp3"];
-utils.sounds.bugs = ["https://www.jumpsplat120.com/assets/sfx/misc/bugs.mp3"];
-
-utils.sounds.bow_draw = [
-	"https://www.jumpsplat120.com/assets/sfx/bow/draw/1.mp3",
-	"https://www.jumpsplat120.com/assets/sfx/bow/draw/2.mp3",
-	"https://www.jumpsplat120.com/assets/sfx/bow/draw/3.mp3",
-	"https://www.jumpsplat120.com/assets/sfx/bow/draw/4.mp3",
-	"https://www.jumpsplat120.com/assets/sfx/bow/draw/5.mp3",
-	"https://www.jumpsplat120.com/assets/sfx/bow/draw/6.mp3"
-]
-
-utils.sounds.dagger_swing = [
-	"https://www.jumpsplat120.com/assets/sfx/dagger/swing/1.wav",
-	"https://www.jumpsplat120.com/assets/sfx/dagger/swing/2.wav",
-	"https://www.jumpsplat120.com/assets/sfx/dagger/swing/3.wav",
-	"https://www.jumpsplat120.com/assets/sfx/dagger/swing/4.wav",
-	"https://www.jumpsplat120.com/assets/sfx/dagger/swing/5.wav"
-]
-
-console.log("Utils | Setup has finished.");
+console.log("Macro Utilities | Setup has finished.");

@@ -96,7 +96,7 @@ utils.Advantage
 	}, utils.reject)
 	.then(_ => {
 		//if the player can extra attack, and haven't this turn
-		if (!utils.getItemByName("Extra Attack")) { return Promise.reject("Does not have extra attack."); }
+		if (!utils.getItemByName("Extra Attack")) { return Promise.reject("Does not have extra attack.");    }
 		if (utils.tracking.turn.extra_attack)     { return Promise.reject("Has already used extra attack."); }
 
 		//ask if they'd like to
@@ -128,7 +128,7 @@ utils.Advantage
 		utils.tracking.turn.extra_attack = true;
 
 		//save new extra attack damage entry
-		utils.tracking.turn.damage.push(new utils.Damage("Piercing", "Dagger", `Attack${crit ? " (Critical)" : ""}`, `${crit ? "1" : "2"}d4`, uuid))
+		utils.tracking.turn.damage.push(new utils.Damage("Piercing", "Dagger", `Attack ${crit ? " (Critical)" : ""}`, `${crit ? "1" : "2"}d4`, uuid))
 		utils.tracking.turn.damage.push(new utils.Damage("Piercing", "Ability Modifier (Dagger)", finess ? "Dexterity (Finess)" : "Strength", finess ? dex : str))
 
 		//show result of extra attack attack roll
